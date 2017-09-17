@@ -1,0 +1,31 @@
+version '1.0-SNAPSHOT'
+
+apply plugin: 'groovy'
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.codehaus.groovy:groovy-all:2.3.11'
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.10.3'
+    //compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
+
+    compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
+
+
+    compile group: 'de.danielbechler', name: 'java-object-diff', version: '0.94'
+    //https://github.com/dnaumenko/java-diff-utils
+    //https://github.com/KengoTODA/java-diff-utils
+    compile group: 'jp.skypencil.java-diff-utils', name: 'diffutils', version: '1.5.0'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.16.18'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
