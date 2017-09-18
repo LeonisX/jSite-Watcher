@@ -1,4 +1,6 @@
-import domain.TagTreeItem;
+package md.leonis.watcher;
+
+import md.leonis.watcher.domain.TagTreeItem;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.scene.Node;

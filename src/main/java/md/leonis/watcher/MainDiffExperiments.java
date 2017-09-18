@@ -1,3 +1,5 @@
+package md.leonis.watcher;
+
 import de.danielbechler.diff.ObjectDiffer;
 import de.danielbechler.diff.ObjectDifferBuilder;
 import de.danielbechler.diff.node.PrintingVisitor;

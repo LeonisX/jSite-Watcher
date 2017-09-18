@@ -1,7 +1,7 @@
-package util;
+package md.leonis.watcher.util;
 
-import domain.DiffStatus;
-import domain.TextDiff;
+import md.leonis.watcher.domain.DiffStatus;
+import md.leonis.watcher.domain.TextDiff;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import java.util.ArrayList;

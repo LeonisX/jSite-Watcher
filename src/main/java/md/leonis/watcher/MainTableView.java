@@ -1,5 +1,7 @@
-import domain.DiffStatus;
-import domain.TextDiff;
+package md.leonis.watcher;
+
+import md.leonis.watcher.domain.DiffStatus;
+import md.leonis.watcher.domain.TextDiff;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -14,7 +16,7 @@ import javafx.util.Callback;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import util.DiffUtils;
+import md.leonis.watcher.util.DiffUtils;
 
 import java.io.File;
 import java.io.IOException;

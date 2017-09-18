@@ -1,3 +1,5 @@
+package md.leonis.watcher;
+
 import difflib.Chunk;
 import difflib.Delta;
 import difflib.DiffUtils;

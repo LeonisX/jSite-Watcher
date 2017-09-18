@@ -1,4 +1,4 @@
-package domain;
+package md.leonis.watcher.domain;
 
 import javafx.scene.Node;
 import javafx.scene.control.TreeItem;

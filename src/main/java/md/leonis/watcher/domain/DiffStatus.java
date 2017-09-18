@@ -1,4 +1,4 @@
-package domain;
+package md.leonis.watcher.domain;
 
 public enum DiffStatus {
 
