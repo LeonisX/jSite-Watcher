@@ -2,8 +2,8 @@ package md.leonis.watcher.view;
 
 import java.util.Arrays;
 import java.util.List;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Hyperlink;
@@ -20,41 +20,28 @@ public class MainStageController {
     private Accordion accordion;
     @FXML
     private Hyperlink settingsHyperlink;
-    @FXML
-    private Hyperlink allVideoHyperlink;
-    @FXML
-    private Hyperlink addVideoHyperlink;
-    @FXML
-    private Hyperlink categoriesHyperlink;
-    @FXML
-    private Hyperlink addCategoryHyperlink;
-    @FXML
-    private Hyperlink inaccesibleHyperlink;
-    @FXML
-    private Hyperlink tagsHyperlink;
-    @FXML
-    private Hyperlink commentsHyperlink;
-    @FXML
-    private TreeTableView<Employee> categoriesTreeTableView;
-    @FXML
-    private TreeTableColumn<Employee, String> folderColumn;
-    @FXML
-    private TreeTableColumn<Employee, String> totalColumn;
 
-    private List<Employee> employees = Arrays.<Employee>asList(
-            new Employee("Ethan Williams", "ethan.williams@example.com"),
-            new Employee("Emma Jones", "emma.jones@example.com"),
-            new Employee("Michael Brown", "michael.brown@example.com"),
-            new Employee("Anna Black", "anna.black@example.com"),
-            new Employee("Rodger York", "roger.york@example.com"),
-            new Employee("Susan Collins", "susan.collins@example.com"));
+    @FXML
+    private TreeTableView<Tree> categoriesTreeTableView;
+    @FXML
+    private TreeTableColumn<Tree, String> folderColumn;
+    @FXML
+    private TreeTableColumn<Tree, Integer> totalColumn;
+
+    private List<Tree> employees = Arrays.<Tree>asList(
+            new Tree("Ethan Williams", 1),
+            new Tree("Emma Jones", 2),
+            new Tree("Michael Brown", 3),
+            new Tree("Anna Black", 4),
+            new Tree("Rodger York", 5),
+            new Tree("Susan Collins", 6));
 
     private final ImageView depIcon = new ImageView (
             new Image(MainStageController.class.getClassLoader().getResourceAsStream("folder_red_open.png"))
     );
 
-    private final TreeItem<Employee> root =
-            new TreeItem<>(new Employee("Sales Department", ""), depIcon);
+    private final TreeItem<Tree> root =
+            new TreeItem<>(new Tree("Sales Department", 0), depIcon);
 
 
     @FXML
@@ -63,13 +50,13 @@ public class MainStageController {
 
         folderColumn.setPrefWidth(120);
         folderColumn.setCellValueFactory(
-                (TreeTableColumn.CellDataFeatures<Employee, String> param) -> new ReadOnlyStringWrapper(
+                (TreeTableColumn.CellDataFeatures<Tree, String> param) -> new ReadOnlyStringWrapper(
                         param.getValue().getValue().getName()));
 
         totalColumn.setPrefWidth(40);
         totalColumn.setCellValueFactory(
-                (TreeTableColumn.CellDataFeatures<Employee, String> param) -> new ReadOnlyStringWrapper(
-                        param.getValue().getValue().getEmail()));
+                (TreeTableColumn.CellDataFeatures<Tree, Integer> param) -> new ReadOnlyObjectWrapper<>(
+                        param.getValue().getValue().getTotal()));
 
         root.setExpanded(true);
         categoriesTreeTableView.setRoot(root);
@@ -88,37 +75,27 @@ public class MainStageController {
         VideoUtils.showListVideous();
     }
 
-    public class Employee {
+    public class Tree {
 
-        private SimpleStringProperty name;
-        private SimpleStringProperty email;
-        public SimpleStringProperty nameProperty() {
-            if (name == null) {
-                name = new SimpleStringProperty(this, "name");
-            }
-            return name;
+        private String title;
+        private int total;
+
+        private Tree(String title, int total) {
+            this.title = title;
+            this.total = total;
         }
-        public SimpleStringProperty emailProperty() {
-            if (email == null) {
-                email = new SimpleStringProperty(this, "email");
-            }
-            return email;
-        }
-        private Employee(String name, String email) {
-            this.name = new SimpleStringProperty(name);
-            this.email = new SimpleStringProperty(email);
-        }
+
         public String getName() {
-            return name.get();
+            return title;
         }
-        public void setName(String fName) {
-            name.set(fName);
+        public void setName(String fTitle) {
+            title = fTitle;
         }
-        public String getEmail() {
-            return email.get();
+        public int getTotal() {
+            return total;
         }
-        public void setEmail(String fName) {
-            email.set(fName);
+        public void setTotal(int fTotal) {
+            total = fTotal;
         }
     }
 }
