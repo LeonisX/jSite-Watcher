@@ -17,4 +17,5 @@ public class MainApp extends Application {
         //Config.loadProtectedProperties();
         JavaFxUtils.showMainPane(primaryStage);
     }
+
 }
