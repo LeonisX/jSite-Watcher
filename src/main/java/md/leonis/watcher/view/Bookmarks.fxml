@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.web.WebView?>
 
-<TableView fx:id="bookmarksTableView" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.leonis.watcher.view.BookmarksController">
-  <columns>
-    <TableColumn fx:id="folderColumn" prefWidth="75.0" text="C1" />
-    <TableColumn fx:id="totalColumn" prefWidth="75.0" text="C2" />
-  </columns>
-</TableView>
+<BorderPane xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.leonis.watcher.view.BookmarksController">
+   <center>
+      <SplitPane dividerPositions="0.5" orientation="VERTICAL" prefHeight="600.0" prefWidth="700.0" BorderPane.alignment="CENTER">
+        <items>
+            <TableView fx:id="bookmarksTableView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="100.0" minWidth="-Infinity">
+              <columns>
+                <TableColumn fx:id="folderColumn" prefWidth="75.0" text="C1" />
+                <TableColumn fx:id="totalColumn" prefWidth="75.0" text="C2" />
+              </columns>
+            </TableView>
+            <WebView fx:id="webView" minHeight="-1.0" minWidth="-1.0" prefHeight="-1.0" prefWidth="-1.0" />
+        </items>
+      </SplitPane>
+   </center>
+</BorderPane>

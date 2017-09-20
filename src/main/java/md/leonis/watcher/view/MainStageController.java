@@ -123,7 +123,5 @@ public class MainStageController {
         byte[] raw = response.bodyAsBytes();
         Path path = Paths.get("/home/leonidstavila/" + name + ".html");
         Files.write(path, raw);
-
-
     }
 }
