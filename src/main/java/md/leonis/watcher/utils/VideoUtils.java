@@ -1,18 +1,4 @@
-package md.leonis.watcher.util;
-
-import com.google.gson.reflect.TypeToken;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+package md.leonis.watcher.utils;
 
 public class VideoUtils {
     public enum Actions {ADD, EDIT, CLONE}

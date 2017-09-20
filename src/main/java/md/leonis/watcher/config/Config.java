@@ -1,46 +1,21 @@
 package md.leonis.watcher.config;
 
-import com.iciql.Db;
+import md.leonis.watcher.domain.Category;
+import md.leonis.watcher.view.MainStageController;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import md.leonis.watcher.domain.Bookmark;
-import md.leonis.watcher.domain.Category;
-import md.leonis.watcher.view.MainStageController;
-import org.jsoup.Connection;
-import org.jsoup.Connection.Method;
-import org.jsoup.Jsoup;
+import java.util.*;
 
 public class Config {
 
-    private static Db db = Db.open("jdbc:h2:mem:iciql");
+    private Config() {
+        // empty
+    }
 
     public static List<Category> categories = new ArrayList<>(Arrays.asList(new Category(0, 1, "title", "")));
 
-    public static List<Bookmark> bookmarks = new ArrayList<>(Arrays.asList(
-            new Bookmark(1, 1, "http://tv-games.ru", "TiVi", null, "")/*,
-            new Bookmark(2, 1, "http://yandex.ru", "Yasha", null, ""),
-            new Bookmark(3, 1, "http://google.com", "Grisha", null, "")*/));
-
-    public static ObservableList<Bookmark> bookmarkObservableList = FXCollections.observableArrayList(bookmarks);
-
-    public static void addBookmark(String title, String url) throws IOException {
-        Bookmark bookmark = new Bookmark(0, 0, url, title, null, "");
-        long id = db.insertAndGetKey(bookmark);
-        bookmark.setId((int) id);
-        bookmarkObservableList.add(bookmark);
-
-    }
 
 
     static String apiPath;

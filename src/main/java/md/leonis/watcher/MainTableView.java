@@ -16,7 +16,7 @@ import javafx.util.Callback;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import md.leonis.watcher.util.DiffUtils;
+import md.leonis.watcher.utils.DiffUtils;
 
 import java.io.File;
 import java.io.IOException;

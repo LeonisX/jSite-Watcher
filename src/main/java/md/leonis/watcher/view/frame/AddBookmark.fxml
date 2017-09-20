@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.leonis.watcher.view.frame.AddBookmarkController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.leonis.watcher.view.frame.AddBookmarkController">
    <bottom>
       <HBox alignment="CENTER_RIGHT" prefHeight="52.0" prefWidth="600.0" spacing="5.0" BorderPane.alignment="CENTER">
          <children>
@@ -30,23 +30,28 @@
    <center>
       <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
          <children>
-            <HBox alignment="CENTER_LEFT" prefHeight="42.0" prefWidth="600.0" spacing="5.0">
+            <HBox alignment="CENTER_LEFT" layoutX="50.0" layoutY="10.0" prefHeight="42.0" prefWidth="600.0" spacing="5.0">
                <children>
-                  <Label prefHeight="16.0" prefWidth="128.0" text="Name:" />
-                  <TextField fx:id="titleTextField" prefHeight="26.0" prefWidth="357.0" />
+                  <Label prefHeight="16.0" prefWidth="80.0" text="URL:" />
+                  <TextField fx:id="urlTextField" prefHeight="26.0" prefWidth="440.0" />
                </children>
                <VBox.margin>
                   <Insets />
                </VBox.margin>
             </HBox>
-            <HBox alignment="CENTER_LEFT" layoutX="50.0" layoutY="10.0" prefHeight="42.0" prefWidth="600.0" spacing="5.0">
-               <children>
-                  <Label prefHeight="16.0" prefWidth="128.0" text="URL:" />
-                  <TextField fx:id="urlTextField" prefHeight="26.0" prefWidth="357.0" />
-               </children>
+            <HBox fx:id="buttonHBox" alignment="CENTER_LEFT" prefHeight="42.0" prefWidth="600.0" spacing="5.0">
                <VBox.margin>
                   <Insets />
                </VBox.margin>
+               <children>
+                  <Button mnemonicParsing="false" onAction="#testButtonClick" text="Test" />
+               </children>
+            </HBox>
+            <HBox fx:id="titleHBox" alignment="CENTER_LEFT" layoutX="50.0" layoutY="52.0" prefHeight="42.0" prefWidth="600.0" spacing="5.0" visible="false">
+               <children>
+                  <Label prefHeight="16.0" prefWidth="80.0" text="Title:" />
+                  <TextField fx:id="titleTextField" prefHeight="26.0" prefWidth="440.0" />
+               </children>
             </HBox>
             <HBox alignment="CENTER_LEFT" layoutX="50.0" layoutY="52.0" prefHeight="206.0" prefWidth="560.0" spacing="5.0" />
          </children>

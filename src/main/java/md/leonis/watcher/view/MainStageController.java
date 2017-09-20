@@ -5,12 +5,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Alert.AlertType;
@@ -23,12 +21,15 @@ import javafx.scene.image.ImageView;
 import md.leonis.watcher.config.Config;
 import md.leonis.watcher.domain.Bookmark;
 import md.leonis.watcher.domain.Category;
-import md.leonis.watcher.util.Comparator;
-import md.leonis.watcher.util.JavaFxUtils;
-import md.leonis.watcher.util.VideoUtils;
+import md.leonis.watcher.service.BookmarksService;
+import md.leonis.watcher.utils.Comparator;
+import md.leonis.watcher.utils.JavaFxUtils;
+import md.leonis.watcher.utils.VideoUtils;
 import org.jsoup.Connection;
 import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
+
+import static md.leonis.watcher.utils.JavaFxUtils.registerController;
 
 public class MainStageController {
 
@@ -52,6 +53,12 @@ public class MainStageController {
     private final TreeItem<Category> root =
             new TreeItem<>(new Category(0, 0, "r00t", ""), depIcon);
 
+    private BookmarksService bookmarksService;
+
+    public void setBookmarksService(BookmarksService bookmarksService) {
+        this.bookmarksService = bookmarksService;
+        registerController(this);
+    }
 
     @FXML
     private void initialize() {
@@ -72,6 +79,7 @@ public class MainStageController {
         categoriesTreeTableView.setShowRoot(false);
         //TODO MAP
         Config.categories.forEach((employee) -> root.getChildren().add(new TreeItem<>(employee)));
+
     }
 
     @FXML
@@ -91,7 +99,7 @@ public class MainStageController {
     }
 
     public void checkBookmark() throws IOException {
-        for (Bookmark bookmark : Config.bookmarks) {
+        for (Bookmark bookmark : bookmarksService.getBookmarks()) {
             System.out.print(bookmark.getTitle() + ": ");
             doCheck(bookmark);
         }

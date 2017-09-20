@@ -1,4 +1,4 @@
-package md.leonis.watcher.util;
+package md.leonis.watcher.utils;
 
 import md.leonis.watcher.domain.DiffStatus;
 import md.leonis.watcher.domain.TextDiff;

@@ -1,4 +1,4 @@
-package md.leonis.watcher.util;
+package md.leonis.watcher.utils;
 
 public class Comparator {
 
