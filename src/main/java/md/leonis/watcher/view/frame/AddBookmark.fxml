@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.leonis.watcher.view.frame.AddBookmarkController">
+   <bottom>
+      <HBox alignment="CENTER_RIGHT" prefHeight="52.0" prefWidth="600.0" spacing="5.0" BorderPane.alignment="CENTER">
+         <children>
+            <Button mnemonicParsing="false" onAction="#addBookmark" prefHeight="26.0" prefWidth="87.0" text="OK">
+               <HBox.margin>
+                  <Insets />
+               </HBox.margin>
+            </Button>
+            <Button layoutX="568.0" layoutY="23.0" mnemonicParsing="false" onAction="#close" text="Cancel" />
+         </children>
+         <BorderPane.margin>
+            <Insets right="5.0" />
+         </BorderPane.margin>
+      </HBox>
+   </bottom>
+   <top>
+      <HBox prefHeight="47.0" prefWidth="600.0" BorderPane.alignment="CENTER" />
+   </top>
+   <center>
+      <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
+         <children>
+            <HBox alignment="CENTER_LEFT" prefHeight="42.0" prefWidth="600.0" spacing="5.0">
+               <children>
+                  <Label prefHeight="16.0" prefWidth="128.0" text="Name:" />
+                  <TextField fx:id="titleTextField" prefHeight="26.0" prefWidth="357.0" />
+               </children>
+               <VBox.margin>
+                  <Insets />
+               </VBox.margin>
+            </HBox>
+            <HBox alignment="CENTER_LEFT" layoutX="50.0" layoutY="10.0" prefHeight="42.0" prefWidth="600.0" spacing="5.0">
+               <children>
+                  <Label prefHeight="16.0" prefWidth="128.0" text="URL:" />
+                  <TextField fx:id="urlTextField" prefHeight="26.0" prefWidth="357.0" />
+               </children>
+               <VBox.margin>
+                  <Insets />
+               </VBox.margin>
+            </HBox>
+            <HBox alignment="CENTER_LEFT" layoutX="50.0" layoutY="52.0" prefHeight="206.0" prefWidth="560.0" spacing="5.0" />
+         </children>
+         <BorderPane.margin>
+            <Insets />
+         </BorderPane.margin>
+         <padding>
+            <Insets left="40.0" />
+         </padding>
+      </VBox>
+   </center>
+</BorderPane>

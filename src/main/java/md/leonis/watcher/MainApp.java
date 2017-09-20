@@ -2,7 +2,7 @@ package md.leonis.watcher;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
-import md.leonis.watcher.util.Config;
+import md.leonis.watcher.config.Config;
 import md.leonis.watcher.util.JavaFxUtils;
 
 public class MainApp extends Application {

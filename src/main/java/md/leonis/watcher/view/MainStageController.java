@@ -1,47 +1,56 @@
 package md.leonis.watcher.view;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Accordion;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeTableColumn;
 import javafx.scene.control.TreeTableView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import md.leonis.watcher.config.Config;
+import md.leonis.watcher.domain.Bookmark;
+import md.leonis.watcher.domain.Category;
+import md.leonis.watcher.util.Comparator;
+import md.leonis.watcher.util.JavaFxUtils;
 import md.leonis.watcher.util.VideoUtils;
+import org.jsoup.Connection;
+import org.jsoup.Connection.Method;
+import org.jsoup.Jsoup;
 
 public class MainStageController {
 
     @FXML
     private Accordion accordion;
+
     @FXML
     private Hyperlink settingsHyperlink;
 
     @FXML
-    private TreeTableView<Tree> categoriesTreeTableView;
+    private TreeTableView<Category> categoriesTreeTableView;
     @FXML
-    private TreeTableColumn<Tree, String> folderColumn;
+    private TreeTableColumn<Category, String> folderColumn;
     @FXML
-    private TreeTableColumn<Tree, Integer> totalColumn;
-
-    private List<Tree> employees = Arrays.<Tree>asList(
-            new Tree("Ethan Williams", 1),
-            new Tree("Emma Jones", 2),
-            new Tree("Michael Brown", 3),
-            new Tree("Anna Black", 4),
-            new Tree("Rodger York", 5),
-            new Tree("Susan Collins", 6));
+    private TreeTableColumn<Category, Integer> totalColumn;
 
     private final ImageView depIcon = new ImageView (
             new Image(MainStageController.class.getClassLoader().getResourceAsStream("folder_red_open.png"))
     );
 
-    private final TreeItem<Tree> root =
-            new TreeItem<>(new Tree("Sales Department", 0), depIcon);
+    private final TreeItem<Category> root =
+            new TreeItem<>(new Category(0, 0, "r00t", ""), depIcon);
 
 
     @FXML
@@ -50,18 +59,19 @@ public class MainStageController {
 
         folderColumn.setPrefWidth(120);
         folderColumn.setCellValueFactory(
-                (TreeTableColumn.CellDataFeatures<Tree, String> param) -> new ReadOnlyStringWrapper(
-                        param.getValue().getValue().getName()));
+                (TreeTableColumn.CellDataFeatures<Category, String> param) -> new ReadOnlyStringWrapper(
+                        param.getValue().getValue().getTitle()));
 
         totalColumn.setPrefWidth(40);
         totalColumn.setCellValueFactory(
-                (TreeTableColumn.CellDataFeatures<Tree, Integer> param) -> new ReadOnlyObjectWrapper<>(
-                        param.getValue().getValue().getTotal()));
+                (TreeTableColumn.CellDataFeatures<Category, Integer> param) -> new ReadOnlyObjectWrapper<>(
+                        param.getValue().getChildren().size()));
 
         root.setExpanded(true);
         categoriesTreeTableView.setRoot(root);
         categoriesTreeTableView.setShowRoot(false);
-        employees.forEach((employee) -> root.getChildren().add(new TreeItem<>(employee)));
+        //TODO MAP
+        Config.categories.forEach((employee) -> root.getChildren().add(new TreeItem<>(employee)));
     }
 
     @FXML
@@ -75,27 +85,45 @@ public class MainStageController {
         VideoUtils.showListVideous();
     }
 
-    public class Tree {
+    public void addBookmark() {
+        JavaFxUtils.showWindow("frame/AddBookmark.fxml", "Add new bookmark");
+        //TODO
+    }
 
-        private String title;
-        private int total;
+    public void checkBookmark() throws IOException {
+        for (Bookmark bookmark : Config.bookmarks) {
+            System.out.print(bookmark.getTitle() + ": ");
+            doCheck(bookmark);
+        }
+    }
 
-        private Tree(String title, int total) {
-            this.title = title;
-            this.total = total;
+    private void doCheck(Bookmark bookmark) throws IOException {
+        if (bookmark.getDate() == null) {
+            savePage(String.valueOf(bookmark.getId()));
+            //TODO update date, and in db
+            bookmark.setDate(new Date());
+            System.out.println("unchanged");
+        } else {
+            System.out.println("changed");
+            savePage("tmp");
+            String oldPage = new String(Files.readAllBytes(Paths.get("/home/leonidstavila/" + bookmark.getId() + ".html")));
+            String newPage = new String(Files.readAllBytes(Paths.get("/home/leonidstavila/tmp.html")));
+            if (!Comparator.compare(oldPage, newPage)) {
+                //TODO notify
+                JavaFxUtils.showAlert("Changed page: " + bookmark.getTitle(), "The page was changed", bookmark.getUrl(), AlertType.INFORMATION);
+                //TODO update date, and in db
+                Files.move(Paths.get("/home/leonidstavila/tmp.html"), Paths.get("/home/leonidstavila/" + bookmark.getId() + ".html"), StandardCopyOption.REPLACE_EXISTING);
+            }
         }
+    }
 
-        public String getName() {
-            return title;
-        }
-        public void setName(String fTitle) {
-            title = fTitle;
-        }
-        public int getTotal() {
-            return total;
-        }
-        public void setTotal(int fTotal) {
-            total = fTotal;
-        }
+    private void savePage(String name) throws IOException {
+        Connection conn = Jsoup.connect("http://tv-games.ru").ignoreContentType(true).method(Method.GET);
+        Connection.Response response = conn.execute();
+        byte[] raw = response.bodyAsBytes();
+        Path path = Paths.get("/home/leonidstavila/" + name + ".html");
+        Files.write(path, raw);
+
+
     }
 }
