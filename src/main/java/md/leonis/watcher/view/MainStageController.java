@@ -1,21 +1,10 @@
 package md.leonis.watcher.view;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Date;
-
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
-import javafx.scene.control.Accordion;
+import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Hyperlink;
-import javafx.scene.control.TreeItem;
-import javafx.scene.control.TreeTableColumn;
-import javafx.scene.control.TreeTableView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import md.leonis.watcher.config.Config;
@@ -28,6 +17,13 @@ import md.leonis.watcher.utils.VideoUtils;
 import org.jsoup.Connection;
 import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Date;
 
 import static md.leonis.watcher.utils.JavaFxUtils.registerController;
 
@@ -61,7 +57,7 @@ public class MainStageController {
     }
 
     @FXML
-    private void initialize() {
+    private void initialize() throws IOException {
         accordion.setExpandedPane(accordion.getPanes().get(0));
 
         folderColumn.setPrefWidth(120);
@@ -79,6 +75,7 @@ public class MainStageController {
         categoriesTreeTableView.setShowRoot(false);
         //TODO MAP
         Config.categories.forEach((employee) -> root.getChildren().add(new TreeItem<>(employee)));
+
 
     }
 
@@ -132,4 +129,5 @@ public class MainStageController {
         Path path = Paths.get("/home/leonidstavila/" + name + ".html");
         Files.write(path, raw);
     }
+
 }
