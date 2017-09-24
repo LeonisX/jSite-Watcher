@@ -33,8 +33,8 @@
 - [x] Все взаимодействия с DB вынести
 - [x] Хранить ссылки на контроллеры
 - [x] Web View, Table View, Tree View tabs
-- [ ] Save new version flow (if diff): 1 -> 1o, tmp -> 1
-- [ ] tmp - random uuid in tmp
+- [x] Save new version flow (if diff): 1 -> 1o, tmp -> 1
+- [x] tmp - random uuid in tmp
 - [ ] Get Jsoup diff
 - [ ] Show Jsoup diff in Web View
 - [ ] Show Jsoup diff in Table View

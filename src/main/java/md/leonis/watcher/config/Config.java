@@ -6,6 +6,7 @@ import md.leonis.watcher.view.MainStageController;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileSystems;
 import java.util.*;
 
 public class Config {
@@ -16,6 +17,7 @@ public class Config {
 
     public static List<Category> categories = new ArrayList<>(Arrays.asList(new Category(0, 1, "title", "")));
 
+    public static String HOME = System.getProperty("user.home") + FileSystems.getDefault().getSeparator();
 
 
     static String apiPath;

@@ -18,13 +18,13 @@ import org.jsoup.Connection;
 import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.Date;
 
+import static md.leonis.watcher.config.Config.HOME;
 import static md.leonis.watcher.utils.JavaFxUtils.registerController;
 
 public class MainStageController {
@@ -104,30 +104,47 @@ public class MainStageController {
 
     private void doCheck(Bookmark bookmark) throws IOException {
         if (bookmark.getDate() == null) {
-            savePage(String.valueOf(bookmark.getId()));
+            savePage(String.valueOf(bookmark.getId()), bookmark.getUrl());
             //TODO update date, and in db
             bookmark.setDate(new Date());
-            System.out.println("unchanged");
+            System.out.println("initialized");
         } else {
-            System.out.println("changed");
-            savePage("tmp");
-            String oldPage = new String(Files.readAllBytes(Paths.get("/home/leonidstavila/" + bookmark.getId() + ".html")));
-            String newPage = new String(Files.readAllBytes(Paths.get("/home/leonidstavila/tmp.html")));
+            Path tmpFile = savePageToTmp(bookmark.getUrl());
+            String oldPage = new String(Files.readAllBytes(Paths.get(HOME + bookmark.getId() + ".html")));
+            String newPage = new String(Files.readAllBytes(tmpFile));
             if (!Comparator.compare(oldPage, newPage)) {
+                System.out.println("changed");
                 //TODO notify
                 JavaFxUtils.showAlert("Changed page: " + bookmark.getTitle(), "The page was changed", bookmark.getUrl(), AlertType.INFORMATION);
+                Files.move(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tmpFile, Paths.get(HOME + bookmark.getId() + ".html"), StandardCopyOption.REPLACE_EXISTING);
                 //TODO update date, and in db
-                Files.move(Paths.get("/home/leonidstavila/tmp.html"), Paths.get("/home/leonidstavila/" + bookmark.getId() + ".html"), StandardCopyOption.REPLACE_EXISTING);
+                bookmark.setDate(new Date());
+            } else {
+                System.out.println("unchanged");
             }
         }
     }
 
-    private void savePage(String name) throws IOException {
-        Connection conn = Jsoup.connect("http://tv-games.ru").ignoreContentType(true).method(Method.GET);
+    //TODO
+    private void savePage(String name, String url) throws IOException {
+        Connection conn = Jsoup.connect(url).ignoreContentType(true).method(Method.GET);
         Connection.Response response = conn.execute();
         byte[] raw = response.bodyAsBytes();
-        Path path = Paths.get("/home/leonidstavila/" + name + ".html");
+        Path path = Paths.get(HOME + name + ".html");
         Files.write(path, raw);
     }
+
+    private Path savePageToTmp(String url) throws IOException {
+        Connection conn = Jsoup.connect(url).ignoreContentType(true).method(Method.GET);
+        Connection.Response response = conn.execute();
+        byte[] raw = response.bodyAsBytes();
+        File tempFile = File.createTempFile("jsw-", "", null);
+        FileOutputStream fos = new FileOutputStream(tempFile);
+        fos.write(raw);
+        return tempFile.toPath();
+    }
+
+
 
 }
