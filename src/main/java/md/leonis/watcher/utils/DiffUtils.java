@@ -86,34 +86,4 @@ public class DiffUtils {
         return (levenshteinDistance.apply(left, right));
     }
 
-
-
-/*    private static List<TextDiff> correctChangedText(List<TextDiff> textDiffs) {
-        if (textDiffs.size() >= 2) {
-            List<TextDiff> result = new ArrayList<>();
-            int idx = 0;
-            while (idx < textDiffs.size() - 1) {
-                TextDiff textDiff1 = textDiffs.get(idx);
-                TextDiff textDiff2 = textDiffs.get(idx + 1);
-                if (isTextDiffChanged(textDiff1, textDiff2)) {
-                    result.add(new TextDiff(textDiff1.getLeftIndex(), textDiff1.getLeftText(),
-                            textDiff2.getRightIndex(), textDiff2.getRightText()));
-                    idx += 2;
-                } else {
-                    result.add(textDiff1);
-                    idx++;
-                }
-            }
-            return result;
-        } else {
-            return textDiffs;
-        }
-    }*/
-
-    /*private static boolean isTextDiffChanged(TextDiff textDiff1, TextDiff textDiff2) {
-        return textDiff1.getLeftIndex() != null && textDiff1.getRightIndex() == null
-                && textDiff2.getLeftIndex() == null && textDiff2.getRightIndex() != null
-                && isTextChanged(textDiff1.getLeftText(), textDiff2.getRightText());
-    }*/
-
 }

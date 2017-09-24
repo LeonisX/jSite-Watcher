@@ -35,6 +35,10 @@ public class Bookmark {
     @IQColumn
     Date date;
 
+    //todo length
+    @IQColumn
+    String charset;
+
     @IQIgnore
     String settings;
 

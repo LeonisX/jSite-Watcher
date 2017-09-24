@@ -1,38 +1,26 @@
 package md.leonis.watcher.view;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
-import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.util.Callback;
-import md.leonis.watcher.MainTableView;
 import md.leonis.watcher.domain.Bookmark;
 import md.leonis.watcher.domain.DiffStatus;
 import md.leonis.watcher.domain.TextDiff;
-import md.leonis.watcher.utils.DiffUtils;
 import md.leonis.watcher.utils.SubPane;
-import org.jsoup.Connection;
-import org.jsoup.Connection.Method;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
-import java.io.File;
-import java.util.*;
-import java.util.stream.IntStream;
-
-import static java.util.stream.Collectors.toMap;
 import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
 import static md.leonis.watcher.utils.JavaFxUtils.registerController;
-import static org.jsoup.helper.StringUtil.isBlank;
 
 public class BookmarksController extends SubPane {
 
+    @FXML
+    public TableColumn<TextDiff, String> leftCol;
+
+    @FXML
+    public TableColumn<TextDiff, String> rightCol;
 
     @FXML
     private TabPane tabPane;
@@ -47,67 +35,23 @@ public class BookmarksController extends SubPane {
     private TableView<Bookmark> bookmarksTableView;
 
     @FXML
-    private TableColumn<Bookmark, String> folderColumn;
-    @FXML
-    private TableColumn<Bookmark, Integer> totalColumn;
+    private TableColumn<Bookmark, String> titleColumn;
 
-    public static final String DEFAULT_JQUERY_MIN_VERSION = "1.7.2";
-    public static final String JQUERY_LOCATION = "http://code.jquery.com/jquery-1.7.2.min.js";
+    @FXML
+    private TableColumn<Bookmark, Integer> urlColumn;
 
     @FXML
     private void initialize() throws Exception {
         bookmarksTableView.setItems(bookmarksService.getBookmarkObservableList());
 
-        folderColumn.setPrefWidth(120);
-        folderColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
-
-        totalColumn.setPrefWidth(40);
-        totalColumn.setCellValueFactory(new PropertyValueFactory<>("url"));
-
-        Connection conn = Jsoup.connect("http://yandex.ru").ignoreContentType(true).method(Method.GET);
-        Connection.Response response = conn.execute();
-
-        String content = highlight(response.body(), "а");
-
-        WebEngine webEngine = webView.getEngine();
-
-        webEngine.loadContent(content);
         registerController(this);
 
-
-
-
-        // TABLE
-
-        //tableView.setSelectionModel(null);
-
-        // Create column UserName (Data type of String).
-        TableColumn<TextDiff, String> leftCol = new TableColumn<>("Old page (date...)");
         leftCol.prefWidthProperty().bind(tableView.widthProperty().divide(2));
-        leftCol.setId("leftCol");
         leftCol.setCellFactory(cellFactory());
 
-        //TODO maximal settings in fxml
-        //TODO show diff in text (in future)
-        // Create column Email (Data type of String).
-        TableColumn<TextDiff, String> rightCol = new TableColumn<>("New page (date...)");
         rightCol.prefWidthProperty().bind(tableView.widthProperty().divide(2));
-        rightCol.setId("rightCol");
         rightCol.setCellFactory(cellFactory());
-
-        leftCol.setCellValueFactory(new PropertyValueFactory<>("leftText"));
-        rightCol.setCellValueFactory(new PropertyValueFactory<>("rightText"));
-
-
-        tableView.getColumns().add(leftCol);
-        tableView.getColumns().add(rightCol);
-
     }
-
-    private String highlight(String body, String text) {
-        return body.replace(text, "<b style='color: red; background-color: yellow'>" + text + "</b>");
-    }
-
 
     private static Callback<TableColumn<TextDiff, String>, TableCell<TextDiff, String>> cellFactory() {
         return new Callback<TableColumn<TextDiff, String>, TableCell<TextDiff, String>>() {
@@ -127,8 +71,6 @@ public class BookmarksController extends SubPane {
 
                         if (getTableRow().getIndex() >= 0 && getTableRow().getIndex() < getTableView().getItems().size()) {
                             if (getTableView().getItems().get(getTableRow().getIndex()).getStatus() == DiffStatus.ADDED) {
-                                //this.setStyle("-fx-background-color: rgb(200,255,200);");
-                                //this.setStyle("-fx-text-fill: red;");
                                 text.setFill(Color.GREEN);
                                 this.setStyle("-fx-font-weight: bold; -fx-background-color: #F0FFF0;");
                             }
@@ -142,13 +84,9 @@ public class BookmarksController extends SubPane {
                                 this.setStyle("-fx-font-weight: bold; -fx-background-color: #FFF0F0;");
                             }
                             if (getTableView().getItems().get(getTableRow().getIndex()).getStatus() == DiffStatus.SAME) {
-                                //this.setStyle("-fx-background-color: rgb(200,255,200);");
-                                //this.setStyle("-fx-text-fill: red;");
                                 text.setFill(Color.BLACK);
                                 this.setStyle("-fx-font-weight: normal; -fx-background-color: #FFFFFF;");
                             }
-                            //this.setBackground();
-                            //this.setStyle("-fx-background-color: #00FFFF;");
                             this.setText(empty ? "" : getItem());
                         }
                     }
@@ -156,5 +94,4 @@ public class BookmarksController extends SubPane {
             }
         };
     }
-
 }

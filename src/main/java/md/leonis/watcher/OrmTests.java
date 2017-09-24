@@ -22,9 +22,9 @@ public class OrmTests {
             db.insertAll(rules);
 
             List<Bookmark> bookmarkList = new ArrayList<>();
-            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), "", rules));
-            bookmarkList.add(new Bookmark(null, 2, "http2", "title2", new Date(), "2", rules));
-            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), "", rules));
+            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), "", "", rules));
+            bookmarkList.add(new Bookmark(null, 2, "http2", "title2", new Date(), "", "2", rules));
+            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), "", "", rules));
             db.insertAll(bookmarkList);
             Bookmark b = new Bookmark();
             List<Bookmark> brestock = db.from(b).where(b.getCategoryId()).is(1).select();

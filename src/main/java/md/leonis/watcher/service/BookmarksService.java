@@ -23,7 +23,7 @@ public class BookmarksService {
     private List<Rule> rules = Arrays.asList(rule);
 
     private List<Bookmark> bookmarks = new ArrayList<>(Arrays.asList(
-            new Bookmark(1, 1, "http://tv-games.ru", "TiVi", null, "", rules)/*,
+            new Bookmark(1, 1, "http://tv-games.ru", "TiVi", null, "", "", rules)/*,
             new Bookmark(2, 1, "http://yandex.ru", "Yasha", null, "", new ArrayList<>()),
             new Bookmark(3, 1, "http://google.com", "Grisha", null, "", new ArrayList<>())*/));
 
@@ -34,7 +34,7 @@ public class BookmarksService {
     }
 
     public void addBookmark(String title, String url) throws IOException {
-        Bookmark bookmark = new Bookmark(0, 0, url, title, null, "", new ArrayList<>());
+        Bookmark bookmark = new Bookmark(0, 0, url, title, null, "", "", new ArrayList<>());
         long id = db.insertAndGetKey(bookmark);
         bookmark.setId((int) id);
         bookmarkObservableList.add(bookmark);
