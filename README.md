@@ -35,9 +35,9 @@
 - [x] Web View, Table View, Tree View tabs
 - [x] Save new version flow (if diff): 1 -> 1o, tmp -> 1
 - [x] tmp - random uuid in tmp
-- [ ] Get Jsoup diff
-- [ ] Show Jsoup diff in Web View
-- [ ] Show Jsoup diff in Table View
+- [x] Get Jsoup diff
+- [x] Show Jsoup diff in Web View
+- [x] Show Jsoup diff in Table View
 - [ ] Рефактор
 - [ ] Правила: Process only, Skip numbers, Skip minor changes (+ threshold), Exclude node, Exclude by Id, ...
 - [ ] Rules in Rules DB

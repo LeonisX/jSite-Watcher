@@ -22,7 +22,7 @@
                 <TableColumn fx:id="totalColumn" prefWidth="75.0" text="C2" />
               </columns>
             </TableView>
-            <TabPane prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE">
+            <TabPane fx:id="tabPane" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE">
               <tabs>
                 <Tab text="Web View">
                      <content>

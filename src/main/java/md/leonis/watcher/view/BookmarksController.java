@@ -3,10 +3,7 @@ package md.leonis.watcher.view;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Control;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
@@ -37,8 +34,8 @@ import static org.jsoup.helper.StringUtil.isBlank;
 public class BookmarksController extends SubPane {
 
 
-    //TODO in config
-    private static final ClassLoader classLoader = MainTableView.class.getClassLoader();
+    @FXML
+    private TabPane tabPane;
 
     @FXML
     TableView<TextDiff> tableView;
@@ -82,8 +79,6 @@ public class BookmarksController extends SubPane {
 
         // TABLE
 
-        Document doc = Jsoup.parse(new File(classLoader.getResource("page.html").getFile()), null);
-
         //tableView.setSelectionModel(null);
 
         // Create column UserName (Data type of String).
@@ -103,25 +98,10 @@ public class BookmarksController extends SubPane {
         leftCol.setCellValueFactory(new PropertyValueFactory<>("leftText"));
         rightCol.setCellValueFactory(new PropertyValueFactory<>("rightText"));
 
-        Collection<String> leftList = walkTree(doc.body(), new ArrayList<>());
-
-        //List<PageText> textList = mergeLists(leftList, leftList);
-
-        List<String> left = Arrays.asList("aaa", "bbb", "ccc", "diff2", "When adding text, you can also set some of its properties.", "sea", "cae", "eee", "changed");
-        List<String> right = Arrays.asList("000", "111", "aaa", "ccc", "diff", "When adding text, you can also set some of its", "ddd", "added1", "added2", "eee", "change");
-
-        Map<Integer, String> leftMap = toIndexedMap(left);
-        Map<Integer, String> rightMap = toIndexedMap(right);
-
-        List<TextDiff> textList = DiffUtils.diff(leftMap, rightMap);
-
-        // Display row data
-        ObservableList<TextDiff> list = FXCollections.observableList(textList);
-
-        tableView.setItems(list);
 
         tableView.getColumns().add(leftCol);
         tableView.getColumns().add(rightCol);
+
     }
 
     private String highlight(String body, String text) {
@@ -161,6 +141,12 @@ public class BookmarksController extends SubPane {
                                 text.setStrikethrough(true);
                                 this.setStyle("-fx-font-weight: bold; -fx-background-color: #FFF0F0;");
                             }
+                            if (getTableView().getItems().get(getTableRow().getIndex()).getStatus() == DiffStatus.SAME) {
+                                //this.setStyle("-fx-background-color: rgb(200,255,200);");
+                                //this.setStyle("-fx-text-fill: red;");
+                                text.setFill(Color.BLACK);
+                                this.setStyle("-fx-font-weight: normal; -fx-background-color: #FFFFFF;");
+                            }
                             //this.setBackground();
                             //this.setStyle("-fx-background-color: #00FFFF;");
                             this.setText(empty ? "" : getItem());
@@ -171,23 +157,4 @@ public class BookmarksController extends SubPane {
         };
     }
 
-
-    private static Map<Integer, String> toIndexedMap(List<String> stringList) {
-        return IntStream.range(0, stringList.size())
-                .boxed()
-                .collect(toMap(idx -> idx, stringList::get));
-    }
-
-/*    private List<PageText> mergeLists(Collection<String> leftList, Collection<String> rightList) {
-        return leftList.stream().map(s -> new PageText(s, s)).collect(Collectors.toList());
-    }*/
-
-
-    private static Collection<String> walkTree(Element element, Collection<String> collection) {
-        if (!isBlank(element.ownText())) {
-            collection.add(element.ownText());
-        }
-        element.children().forEach(e -> walkTree(e, collection));
-        return collection;
-    }
 }
