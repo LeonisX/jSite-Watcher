@@ -38,8 +38,9 @@
 - [x] Get Jsoup diff
 - [x] Show Jsoup diff in Web View
 - [x] Show Jsoup diff in Table View
-- [ ] Current bookmark related data
-- [ ] Bookmark - status: initialized, unchanged, changed, error
+- [x] Current bookmark related data
+- [x] Bookmark - status: initialized, unchanged, changed, error
+- [x] Status in tableview; color
 - [ ] Рефактор
 - [ ] Правила: Process only, Skip numbers, Skip minor changes (+ threshold), Exclude node, Exclude by Id, ...
 - [ ] Rules in Rules DB

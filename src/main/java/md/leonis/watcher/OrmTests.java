@@ -5,10 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import md.leonis.watcher.domain.Bookmark;
-import md.leonis.watcher.domain.Category;
-import md.leonis.watcher.domain.Rule;
-import md.leonis.watcher.domain.RuleType;
+
+import md.leonis.watcher.domain.*;
 
 public class OrmTests {
 
@@ -22,9 +20,9 @@ public class OrmTests {
             db.insertAll(rules);
 
             List<Bookmark> bookmarkList = new ArrayList<>();
-            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), "", "", rules));
-            bookmarkList.add(new Bookmark(null, 2, "http2", "title2", new Date(), "", "2", rules));
-            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), "", "", rules));
+            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), BookmarkStatus.NEW,"", "", rules));
+            bookmarkList.add(new Bookmark(null, 2, "http2", "title2", new Date(), BookmarkStatus.NEW, "", "2", rules));
+            bookmarkList.add(new Bookmark(null, 1, "http", "title", new Date(), BookmarkStatus.NEW, "", "", rules));
             db.insertAll(bookmarkList);
             Bookmark b = new Bookmark();
             List<Bookmark> brestock = db.from(b).where(b.getCategoryId()).is(1).select();

@@ -20,29 +20,32 @@ import java.util.List;
 public class Bookmark {
 
     @IQColumn(primaryKey = true, autoIncrement = true)
-    Integer id;
+    private Integer id;
 
     @IQColumn(nullable = false)
-    Integer categoryId;
+    private Integer categoryId;
 
     @IQColumn(nullable = false)
-    String url;
+    private String url;
 
     //todo length???
     @IQColumn(nullable = false)
-    String title;
+    private String title;
 
     @IQColumn
-    Date date;
+    private Date date;
+
+    @IQColumn
+    private BookmarkStatus status = BookmarkStatus.NEW;
 
     //todo length
     @IQColumn
-    String charset;
+    private String charset;
 
     @IQIgnore
-    String settings;
+    private String settings;
 
     @IQIgnore
-    List<Rule> rules = new ArrayList<>();
+    private List<Rule> rules = new ArrayList<>();
 
 }

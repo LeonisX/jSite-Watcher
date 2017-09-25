@@ -27,6 +27,10 @@
                       <cellValueFactory><PropertyValueFactory property="url" />
                       </cellValueFactory>
                   </TableColumn>
+                  <TableColumn fx:id="statusColumn" minWidth="0.0" prefWidth="200.0" text="Status">
+                      <cellValueFactory><PropertyValueFactory property="status" />
+                      </cellValueFactory>
+                  </TableColumn>
               </columns>
             </TableView>
             <TabPane fx:id="tabPane" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE">

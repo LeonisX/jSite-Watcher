@@ -2,21 +2,17 @@ package md.leonis.watcher.view;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.Accordion;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeTableColumn;
+import javafx.scene.control.TreeTableView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import md.leonis.watcher.config.Config;
 import md.leonis.watcher.domain.Bookmark;
+import md.leonis.watcher.domain.BookmarkStatus;
 import md.leonis.watcher.domain.Category;
-import md.leonis.watcher.domain.DiffStatus;
-import md.leonis.watcher.domain.TextDiff;
 import md.leonis.watcher.service.BookmarksService;
 import md.leonis.watcher.utils.Comparator;
 import md.leonis.watcher.utils.DiffUtils;
@@ -30,7 +26,6 @@ import org.jsoup.nodes.Element;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,6 +42,8 @@ import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toMap;
 import static md.leonis.watcher.config.Config.HOME;
+import static md.leonis.watcher.service.BookmarksService.currentBookmark;
+import static md.leonis.watcher.service.BookmarksService.textList;
 import static md.leonis.watcher.utils.JavaFxUtils.registerController;
 import static org.jsoup.helper.StringUtil.isBlank;
 
@@ -115,16 +112,24 @@ public class MainStageController {
     public void checkBookmarks() throws IOException {
         for (Bookmark bookmark : bookmarksService.getBookmarks()) {
             doCheck(bookmark);
+            JavaFxUtils.getController(BookmarksController.class).bookmarksTableView.refresh();
+        }
+        JavaFxUtils.getController(BookmarksController.class).tableView.setUserData(null);
+        JavaFxUtils.getController(BookmarksController.class).webView.setUserData(null);
+        //TODO refresh current bookmark if not SAME
+        if (currentBookmark != null/* && JavaFxUtils.currentBookmark.getStatus() == BookmarkStatus.CHANGED*/) {
+            JavaFxUtils.getController(BookmarksController.class).refresh();
         }
     }
 
     private void doCheck(Bookmark bookmark) throws IOException {
         //TODO preflight
-        if (bookmark.getDate() == null) {
+        if (bookmark.getStatus() == BookmarkStatus.NEW) {
             String charset = savePage(String.valueOf(bookmark.getId()), bookmark.getUrl());
-            //TODO update date, and in db
+            //TODO update date, and charset in db
             bookmark.setDate(new Date());
             bookmark.setCharset(charset);
+            bookmark.setStatus(BookmarkStatus.INITIALIZED);
             System.out.println("initialized");
         } else {
             File tempFile = savePageToTmp(bookmark.getUrl());
@@ -140,11 +145,9 @@ public class MainStageController {
             Map<Integer, String> leftMap = toIndexedMap(leftList);
             Map<Integer, String> rightMap = toIndexedMap(rightList);
 
-            List<TextDiff> textList = DiffUtils.diff(leftMap, rightMap);
+            System.out.println(leftMap);
 
-            ObservableList<TextDiff> list = FXCollections.observableList(textList);
-
-            TableView<TextDiff> tableView = JavaFxUtils.getController(BookmarksController.class).tableView;
+            textList = DiffUtils.diff(leftMap, rightMap);
 
             BasicFileAttributes attr = Files.readAttributes(oldFile, BasicFileAttributes.class);
 
@@ -153,18 +156,6 @@ public class MainStageController {
                     .format(attr.creationTime().toInstant());
 
             JavaFxUtils.getController(BookmarksController.class).leftCol.setText("Old page (" + creationDate + ")");
-            tableView.setItems(list);
-
-            // WEB VIEW
-            String[] content = new String[]{String.join("\n", Files.readAllLines(tempFile.toPath(), Charset.forName(bookmark.getCharset())))};
-
-            textList.stream()
-                    .filter(t -> t.getStatus().equals(DiffStatus.CHANGED) || t.getStatus().equals(DiffStatus.ADDED))
-                    .forEach(t -> highlight(content, t.getRightText()));
-
-            WebView webView = JavaFxUtils.getController(BookmarksController.class).webView;
-            WebEngine webEngine = webView.getEngine();
-            webEngine.loadContent(content[0]);
 
             //TODO
             if (!Comparator.compare(textList)) {
@@ -173,17 +164,20 @@ public class MainStageController {
                 //JavaFxUtils.showAlert("Changed page: " + bookmark.getTitle(), "The page was changed", bookmark.getUrl(), AlertType.INFORMATION);
                 Files.move(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
                 Files.move(tempFile.toPath(), Paths.get(HOME + bookmark.getId() + ".html"), StandardCopyOption.REPLACE_EXISTING);
-                //TODO update date, and in db
+                //TODO update date, and status in db
                 bookmark.setDate(new Date());
+                bookmark.setStatus(BookmarkStatus.CHANGED);
             } else {
+                if (bookmark.getStatus() == BookmarkStatus.INITIALIZED) {
+                    Files.copy(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
+                }
+                if (bookmark.getStatus() != BookmarkStatus.UNCHANGED) {
+                    bookmark.setStatus(BookmarkStatus.UNCHANGED);
+                    //TODO update date, and status in db
+                }
                 System.out.println("unchanged");
             }
         }
-    }
-
-
-    private void highlight(String[] body, String text) {
-        body[0] = body[0].replace(text, "<b style='color: red; background-color: yellow'>" + text + "</b>");
     }
 
 
