@@ -44,6 +44,22 @@ public class BookmarksController extends SubPane {
     private void initialize() throws Exception {
         bookmarksTableView.setItems(bookmarksService.getBookmarkObservableList());
 
+        bookmarksTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            //TODO change current bookmark related data
+            //TODO show in current pane control
+            switch (tabPane.getSelectionModel().getSelectedIndex()) {
+                case 0:
+                    //TODO webview
+                    break;
+                case 1:
+                    //TODO tableview
+                    break;
+                case 2:
+                    break;
+            }
+
+        });
+
         registerController(this);
 
         leftCol.prefWidthProperty().bind(tableView.widthProperty().divide(2));

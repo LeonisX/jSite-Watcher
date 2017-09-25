@@ -2,6 +2,8 @@ package md.leonis.watcher.view;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -89,6 +91,13 @@ public class MainStageController {
         totalColumn.setCellValueFactory(
                 (TreeTableColumn.CellDataFeatures<Category, Integer> param) -> new ReadOnlyObjectWrapper<>(
                         param.getValue().getChildren().size()));
+
+        categoriesTreeTableView.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, newValue) -> {
+                    //TODO show bookmarks
+                    System.out.println(newValue.getValue().getTitle());
+                });
+
 
         root.setExpanded(true);
         categoriesTreeTableView.setRoot(root);
