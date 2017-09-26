@@ -3,13 +3,39 @@ package md.leonis.watcher.service;
 import com.iciql.Db;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.TableView;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import lombok.Getter;
 import md.leonis.watcher.domain.*;
+import md.leonis.watcher.utils.Comparator;
+import md.leonis.watcher.utils.DiffUtils;
+import md.leonis.watcher.utils.JavaFxUtils;
+import md.leonis.watcher.view.BookmarksController;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.*;
+import java.util.stream.IntStream;
+
+import static java.util.stream.Collectors.toMap;
+import static md.leonis.watcher.config.Config.HOME;
+import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
+import static org.jsoup.helper.StringUtil.isBlank;
 
 @Getter
 public class BookmarksService {
@@ -47,4 +73,169 @@ public class BookmarksService {
         bookmarkObservableList.add(bookmark);
     }
 
+    public void refreshWebView(WebView webView) {
+        try {
+            if (webView.getUserData() == null || !webView.getUserData().equals(currentBookmark.getId())) {
+                webView.setUserData(currentBookmark.getId());
+                String[] content = new String[]{String.join("\n",
+                        Files.readAllLines(Paths.get(HOME + currentBookmark.getId() + ".html"), Charset.forName(currentBookmark.getCharset())))};
+
+                textList.stream()
+                        .filter(t -> t.getStatus().equals(DiffStatus.CHANGED) || t.getStatus().equals(DiffStatus.ADDED))
+                        .forEach(t -> highlight(content, t.getRightText()));
+
+                WebEngine webEngine = webView.getEngine();
+                webEngine.loadContent(content[0]);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void highlight(String[] body, String text) {
+        body[0] = body[0].replace(text, "<b style='color: red; background-color: yellow'>" + text + "</b>");
+    }
+
+    public void refreshTableView(TableView<TextDiff> tableView) {
+        try {
+            if (tableView.getUserData() == null || !tableView.getUserData().equals(currentBookmark.getId())) {
+                tableView.setUserData(currentBookmark.getId());
+                //TODO refresh
+                List<String> leftList;
+                //TODO optimize
+                if (currentBookmark.getStatus() == BookmarkStatus.CHANGED || currentBookmark.getStatus() == BookmarkStatus.UNCHANGED
+                        || currentBookmark.getStatus() == BookmarkStatus.ERROR) {
+                    Document doc = Jsoup.parse(new File(HOME + currentBookmark.getId() + "o.html"), currentBookmark.getCharset(), currentBookmark.getUrl());
+                    leftList = walkTree(doc.body(), new ArrayList<>());
+                } else {
+                    leftList = new ArrayList<>();
+                }
+
+                List<String> rightList;
+                if (currentBookmark.getStatus() != BookmarkStatus.NEW) {
+                    Document doc = Jsoup.parse(new File(HOME + currentBookmark.getId() + ".html"), currentBookmark.getCharset(), currentBookmark.getUrl());
+                    rightList = walkTree(doc.body(), new ArrayList<>());
+                } else {
+                    rightList = new ArrayList<>();
+                }
+
+                Map<Integer, String> leftMap = toIndexedMap(leftList);
+                Map<Integer, String> rightMap = toIndexedMap(rightList);
+
+                textList = DiffUtils.diff(leftMap, rightMap);
+
+                list = FXCollections.observableList(textList);
+
+                tableView.setItems(list);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Map<Integer, String> toIndexedMap(List<String> stringList) {
+        return IntStream.range(0, stringList.size())
+                .boxed()
+                .collect(toMap(idx -> idx, stringList::get));
+    }
+
+    private static List<String> walkTree(Element element, List<String> collection) {
+        if (!isBlank(element.ownText())) {
+            collection.add(element.ownText());
+        }
+        element.children().forEach(e -> walkTree(e, collection));
+        return collection;
+    }
+
+    public void checkBookmarks() throws IOException {
+        for (Bookmark bookmark : bookmarksService.getBookmarks()) {
+            bookmarksService.doCheck(bookmark);
+            JavaFxUtils.getController(BookmarksController.class).bookmarksTableView.refresh();
+        }
+        JavaFxUtils.getController(BookmarksController.class).tableView.setUserData(null);
+        JavaFxUtils.getController(BookmarksController.class).webView.setUserData(null);
+        //TODO refresh current bookmark if not SAME
+        if (currentBookmark != null/* && JavaFxUtils.currentBookmark.getStatus() == BookmarkStatus.CHANGED*/) {
+            JavaFxUtils.getController(BookmarksController.class).refresh();
+        }
+    }
+
+    public void doCheck(Bookmark bookmark) throws IOException {
+        //TODO preflight
+        if (bookmark.getStatus() == BookmarkStatus.NEW) {
+            String charset = savePage(String.valueOf(bookmark.getId()), bookmark.getUrl());
+            //TODO update date, and charset in db
+            bookmark.setDate(new Date());
+            bookmark.setCharset(charset);
+            bookmark.setStatus(BookmarkStatus.INITIALIZED);
+            System.out.println("initialized");
+        } else {
+            File tempFile = savePageToTmp(bookmark.getUrl());
+
+            Path oldFile = Paths.get(HOME + bookmark.getId() + ".html");
+
+            Document doc = Jsoup.parse(new File(HOME + bookmark.getId() + ".html"), bookmark.getCharset(), bookmark.getUrl());
+            List<String> leftList = walkTree(doc.body(), new ArrayList<>());
+
+            doc = Jsoup.parse(tempFile, null, bookmark.getUrl());
+            List<String> rightList = walkTree(doc.body(), new ArrayList<>());
+
+            Map<Integer, String> leftMap = toIndexedMap(leftList);
+            Map<Integer, String> rightMap = toIndexedMap(rightList);
+
+            System.out.println(leftMap);
+
+            textList = DiffUtils.diff(leftMap, rightMap);
+
+            BasicFileAttributes attr = Files.readAttributes(oldFile, BasicFileAttributes.class);
+
+            String creationDate = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
+                    .withZone(ZoneId.systemDefault())
+                    .format(attr.creationTime().toInstant());
+
+            JavaFxUtils.getController(BookmarksController.class).leftCol.setText("Old page (" + creationDate + ")");
+
+            //TODO
+            if (!Comparator.compare(textList)) {
+                System.out.println("changed");
+                //TODO notify
+                //JavaFxUtils.showAlert("Changed page: " + bookmark.getTitle(), "The page was changed", bookmark.getUrl(), AlertType.INFORMATION);
+                Files.move(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tempFile.toPath(), Paths.get(HOME + bookmark.getId() + ".html"), StandardCopyOption.REPLACE_EXISTING);
+                //TODO update date, and status in db
+                bookmark.setDate(new Date());
+                bookmark.setStatus(BookmarkStatus.CHANGED);
+            } else {
+                if (bookmark.getStatus() == BookmarkStatus.INITIALIZED) {
+                    Files.copy(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
+                }
+                if (bookmark.getStatus() != BookmarkStatus.UNCHANGED) {
+                    bookmark.setStatus(BookmarkStatus.UNCHANGED);
+                    //TODO update date, and status in db
+                }
+                System.out.println("unchanged");
+            }
+        }
+    }
+
+
+    private String savePage(String name, String url) throws IOException {
+        Connection conn = Jsoup.connect(url).ignoreContentType(true).method(Connection.Method.GET);
+        Connection.Response response = conn.execute();
+        byte[] raw = response.bodyAsBytes();
+        Path path = Paths.get(HOME + name + ".html");
+        Files.write(path, raw);
+        return response.charset();
+    }
+
+    private File savePageToTmp(String url) throws IOException {
+        Connection conn = Jsoup.connect(url).ignoreContentType(true).method(Connection.Method.GET);
+        Connection.Response response = conn.execute();
+        byte[] raw = response.bodyAsBytes();
+        File tempFile = File.createTempFile("jsw-", "", null);
+        FileOutputStream fos = new FileOutputStream(tempFile);
+        fos.write(raw);
+        return tempFile;
+    }
 }

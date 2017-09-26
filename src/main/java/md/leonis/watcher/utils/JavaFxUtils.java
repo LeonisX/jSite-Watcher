@@ -42,7 +42,7 @@ public class JavaFxUtils {
             //loader.setController(getController(MainStageController.class));
             rootLayout = loader.load();
             MainStageController controller = loader.getController();
-            controller.setBookmarksService(bookmarksService);
+            //controller.setBookmarksService(bookmarksService);
             Scene scene = new Scene(rootLayout, 1280, 960);
             primaryStage.setScene(scene);
 
