@@ -41,5 +41,8 @@ dependencies {
 
     compile group: 'com.h2database', name: 'h2', version: '1.4.196'
 
+    compile group: 'commons-io', name: 'commons-io', version: '2.5'
+    compile group: 'net.sourceforge.htmlcleaner', name: 'htmlcleaner', version: '2.21'
+
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

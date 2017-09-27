@@ -41,6 +41,27 @@
 - [x] Current bookmark related data
 - [x] Bookmark - status: initialized, unchanged, changed, error
 - [x] Status in tableview; color
+
+###Экспериментальная фаза
+
+Источники: 
+
+- https://github.com/jOOQ/jOOX
+- https://stackoverflow.com/questions/10356258/how-do-i-convert-a-org-w3c-dom-document-object-to-a-string
+
+- [x] Загружать страницу в WebView напрямую из файла
+- [x] Поменять данные в WebView напрямую
+- [ ] Перед показом страницы преобразовывать все относительные ссылки в абсолютные
+- [ ] 
+- [ ] a
+- [ ] img
+- [ ] link href
+- [ ] script src
+
+
+Возможные проблемы - битые html. Есть чистильщики
+
+###Фаза 4
 - [ ] Рефактор
 - [ ] Правила: Process only, Skip numbers, Skip minor changes (+ threshold), Exclude node, Exclude by Id, ...
 - [ ] Rules in Rules DB

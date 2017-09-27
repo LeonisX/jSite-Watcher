@@ -1,25 +1,16 @@
 package md.leonis.watcher.service;
 
-import com.iciql.Db;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.scene.control.TableView;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
-import lombok.Getter;
-import md.leonis.watcher.domain.*;
-import md.leonis.watcher.utils.Comparator;
-import md.leonis.watcher.utils.DiffUtils;
-import md.leonis.watcher.utils.JavaFxUtils;
-import md.leonis.watcher.view.BookmarksController;
-import org.jsoup.Connection;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
+import static java.util.stream.Collectors.toMap;
+import static md.leonis.watcher.config.Config.HOME;
+import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
+import static org.jsoup.helper.StringUtil.isBlank;
 
+import com.iciql.Db;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,13 +20,51 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
-
-import static java.util.stream.Collectors.toMap;
-import static md.leonis.watcher.config.Config.HOME;
-import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
-import static org.jsoup.helper.StringUtil.isBlank;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Worker.State;
+import javafx.scene.control.TableView;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import lombok.Getter;
+import md.leonis.watcher.domain.Bookmark;
+import md.leonis.watcher.domain.BookmarkStatus;
+import md.leonis.watcher.domain.DiffStatus;
+import md.leonis.watcher.domain.Rule;
+import md.leonis.watcher.domain.RuleType;
+import md.leonis.watcher.domain.TextDiff;
+import md.leonis.watcher.utils.Comparator;
+import md.leonis.watcher.utils.DiffUtils;
+import md.leonis.watcher.utils.JavaFxUtils;
+import md.leonis.watcher.view.BookmarksController;
+import org.htmlcleaner.CleanerProperties;
+import org.htmlcleaner.DomSerializer;
+import org.htmlcleaner.HtmlCleaner;
+import org.htmlcleaner.JDomSerializer;
+import org.htmlcleaner.TagNode;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 @Getter
 public class BookmarksService {
@@ -43,7 +72,6 @@ public class BookmarksService {
     private Db db;
 
     private Rule rule = new Rule(1, 1, RuleType.EXCLUDE_BY_CLASS, "hero");
-
 
     public static Bookmark currentBookmark;
 
@@ -53,8 +81,10 @@ public class BookmarksService {
 
     private List<Rule> rules = Arrays.asList(rule);
 
-    private List<Bookmark> bookmarks = new ArrayList<>(Arrays.asList(
-            new Bookmark(1, 1, "http://tv-games.ru", "TiVi", null, BookmarkStatus.NEW, "", "", rules)/*,
+    private List<Bookmark> bookmarks = new ArrayList<>(
+            Arrays.asList(new Bookmark(1, 1, "http://tv-games.ru", "TiVi", null, BookmarkStatus.NEW, "", "", rules),
+                    new Bookmark(4, 1, "http://www.emu-land.net", "mumuland", null, BookmarkStatus.NEW, "", "",
+                            new ArrayList<>())/*,
             new Bookmark(2, 1, "http://yandex.ru", "Yasha", null, BookmarkStatus.NEW, "", "", new ArrayList<>()),
             new Bookmark(3, 1, "http://google.com", "Grisha", null, BookmarkStatus.NEW, "", "", new ArrayList<>()),
             new Bookmark(4, 1, "http://www.emu-land.net", "mumuland", null, BookmarkStatus.NEW, "", "", new ArrayList<>()),
@@ -78,20 +108,90 @@ public class BookmarksService {
             if (webView.getUserData() == null || !webView.getUserData().equals(currentBookmark.getId())) {
                 webView.setUserData(currentBookmark.getId());
                 String[] content = new String[]{String.join("\n",
-                        Files.readAllLines(Paths.get(HOME + currentBookmark.getId() + ".html"), Charset.forName(currentBookmark.getCharset())))};
+                        Files.readAllLines(Paths.get(HOME + currentBookmark.getId() + ".html"),
+                                Charset.forName(currentBookmark.getCharset())))};
 
                 textList.stream()
                         .filter(t -> t.getStatus().equals(DiffStatus.CHANGED) || t.getStatus().equals(DiffStatus.ADDED))
                         .forEach(t -> highlight(content, t.getRightText()));
 
+                //TODO option - load from origin direct
+
+                //TODO rewrite, app preflight do before browser on content[0].
+                try {
+                    HtmlCleaner cleaner = new HtmlCleaner();
+                    CleanerProperties props = cleaner.getProperties();
+                    //props.setXXX(...);
+                    TagNode node = cleaner.clean(content[0]);
+                    org.w3c.dom.Document document = new DomSerializer(props, true).createDOM(node);
+                    correctLinks(document, "link", "href");
+                    correctLinks(document, "a", "href");
+                    correctLinks(document, "img", "src");
+                    correctLinks(document, "script", "src");
+                    TransformerFactory tf = TransformerFactory.newInstance();
+                    Transformer transformer = tf.newTransformer();
+                    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+                    StringWriter writer = new StringWriter();
+                    transformer.transform(new DOMSource(document), new StreamResult(writer));
+                    content[0] = writer.getBuffer().toString()/*.replaceAll("\n|\r", "")*/;
+                    System.out.println(content[0]);
+                } catch (ParserConfigurationException e) {
+                    e.printStackTrace();
+                } catch (TransformerConfigurationException e) {
+                    e.printStackTrace();
+                } catch (TransformerException e) {
+                    e.printStackTrace();
+                }
+
                 WebEngine webEngine = webView.getEngine();
                 webEngine.loadContent(content[0]);
+                webEngine.getLoadWorker().stateProperty().addListener((ov, oldState, newState) -> {
+                    if (newState.equals(State.SUCCEEDED)) {
+                        /*correctLinks(webEngine, "link", "href");
+                        correctLinks(webEngine, "a", "href");
+                        correctLinks(webEngine, "img", "src");
+                        correctLinks(webEngine, "script", "src");
+                        try {
+                            TransformerFactory tf = TransformerFactory.newInstance();
+                            Transformer transformer = tf.newTransformer();
+                            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+                            StringWriter writer = new StringWriter();
+                            transformer.transform(new DOMSource(webEngine.getDocument()), new StreamResult(writer));
+                            String output = writer.getBuffer().toString()*//*.replaceAll("\n|\r", "")*//*;
+                            System.out.println(output);
+                        } catch (TransformerConfigurationException e) {
+                            e.printStackTrace();
+                        } catch (TransformerException e) {
+                            e.printStackTrace();
+                        }*/
+                    } else {
+                        System.out.println(newState);
+                    }
+                });
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    private void correctLinks(org.w3c.dom.Document document, String tag, String attribute) {
+        NodeList nodeList = document.getElementsByTagName(tag);
+        //TODO process tree, find href, src
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            if (((org.w3c.dom.Element) nodeList.item(i)).hasAttribute(attribute)) {
+                String attr = ((org.w3c.dom.Element) nodeList.item(i)).getAttribute(attribute);
+                if (attr.startsWith("//")) {
+                    attr = "http:" + attr;
+                    ((org.w3c.dom.Element) nodeList.item(i)).setAttribute(attribute, attr);
+                }
+                if (attr.startsWith("/")) {
+                    //TODO correct path (i. .e, remove page name)
+                    attr = currentBookmark.getUrl() + attr;
+                    ((org.w3c.dom.Element) nodeList.item(i)).setAttribute(attribute, attr);
+                }
+            }
+        }
+    }
 
     private void highlight(String[] body, String text) {
         body[0] = body[0].replace(text, "<b style='color: red; background-color: yellow'>" + text + "</b>");
@@ -104,9 +204,12 @@ public class BookmarksService {
                 //TODO refresh
                 List<String> leftList;
                 //TODO optimize
-                if (currentBookmark.getStatus() == BookmarkStatus.CHANGED || currentBookmark.getStatus() == BookmarkStatus.UNCHANGED
+                if (currentBookmark.getStatus() == BookmarkStatus.CHANGED
+                        || currentBookmark.getStatus() == BookmarkStatus.UNCHANGED
                         || currentBookmark.getStatus() == BookmarkStatus.ERROR) {
-                    Document doc = Jsoup.parse(new File(HOME + currentBookmark.getId() + "o.html"), currentBookmark.getCharset(), currentBookmark.getUrl());
+                    Document doc = Jsoup
+                            .parse(new File(HOME + currentBookmark.getId() + "o.html"), currentBookmark.getCharset(),
+                                    currentBookmark.getUrl());
                     leftList = walkTree(doc.body(), new ArrayList<>());
                 } else {
                     leftList = new ArrayList<>();
@@ -114,7 +217,9 @@ public class BookmarksService {
 
                 List<String> rightList;
                 if (currentBookmark.getStatus() != BookmarkStatus.NEW) {
-                    Document doc = Jsoup.parse(new File(HOME + currentBookmark.getId() + ".html"), currentBookmark.getCharset(), currentBookmark.getUrl());
+                    Document doc = Jsoup
+                            .parse(new File(HOME + currentBookmark.getId() + ".html"), currentBookmark.getCharset(),
+                                    currentBookmark.getUrl());
                     rightList = walkTree(doc.body(), new ArrayList<>());
                 } else {
                     rightList = new ArrayList<>();
@@ -135,9 +240,7 @@ public class BookmarksService {
     }
 
     private static Map<Integer, String> toIndexedMap(List<String> stringList) {
-        return IntStream.range(0, stringList.size())
-                .boxed()
-                .collect(toMap(idx -> idx, stringList::get));
+        return IntStream.range(0, stringList.size()).boxed().collect(toMap(idx -> idx, stringList::get));
     }
 
     private static List<String> walkTree(Element element, List<String> collection) {
@@ -175,7 +278,8 @@ public class BookmarksService {
 
             Path oldFile = Paths.get(HOME + bookmark.getId() + ".html");
 
-            Document doc = Jsoup.parse(new File(HOME + bookmark.getId() + ".html"), bookmark.getCharset(), bookmark.getUrl());
+            Document doc = Jsoup
+                    .parse(new File(HOME + bookmark.getId() + ".html"), bookmark.getCharset(), bookmark.getUrl());
             List<String> leftList = walkTree(doc.body(), new ArrayList<>());
 
             doc = Jsoup.parse(tempFile, null, bookmark.getUrl());
@@ -190,8 +294,7 @@ public class BookmarksService {
 
             BasicFileAttributes attr = Files.readAttributes(oldFile, BasicFileAttributes.class);
 
-            String creationDate = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
-                    .withZone(ZoneId.systemDefault())
+            String creationDate = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withZone(ZoneId.systemDefault())
                     .format(attr.creationTime().toInstant());
 
             JavaFxUtils.getController(BookmarksController.class).leftCol.setText("Old page (" + creationDate + ")");
@@ -201,14 +304,17 @@ public class BookmarksService {
                 System.out.println("changed");
                 //TODO notify
                 //JavaFxUtils.showAlert("Changed page: " + bookmark.getTitle(), "The page was changed", bookmark.getUrl(), AlertType.INFORMATION);
-                Files.move(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
-                Files.move(tempFile.toPath(), Paths.get(HOME + bookmark.getId() + ".html"), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"),
+                        StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tempFile.toPath(), Paths.get(HOME + bookmark.getId() + ".html"),
+                        StandardCopyOption.REPLACE_EXISTING);
                 //TODO update date, and status in db
                 bookmark.setDate(new Date());
                 bookmark.setStatus(BookmarkStatus.CHANGED);
             } else {
                 if (bookmark.getStatus() == BookmarkStatus.INITIALIZED) {
-                    Files.copy(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(Paths.get(HOME + bookmark.getId() + ".html"),
+                            Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
                 }
                 if (bookmark.getStatus() != BookmarkStatus.UNCHANGED) {
                     bookmark.setStatus(BookmarkStatus.UNCHANGED);
@@ -218,7 +324,6 @@ public class BookmarksService {
             }
         }
     }
-
 
     private String savePage(String name, String url) throws IOException {
         Connection conn = Jsoup.connect(url).ignoreContentType(true).method(Connection.Method.GET);
