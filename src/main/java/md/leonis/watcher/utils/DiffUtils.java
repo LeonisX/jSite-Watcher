@@ -36,22 +36,22 @@ public class DiffUtils {
         while (i < leftMap.size() && j < rightMap.size()) {
             Integer levenshteinDistance = levenshteinDistance(leftMap.get(i), rightMap.get(j));
             if (levenshteinDistance == 0) {
-                System.out.println("* " + leftMap.get(i));
+                //System.out.println("* " + leftMap.get(i));
                 textDiffs.add(new TextDiff(i, leftMap.get(i), j, rightMap.get(j), DiffStatus.SAME));
                 i++;
                 j++;
             } else if (levenshteinDistance > 0) {
-                System.out.println(leftMap.get(i));
+                //System.out.println(leftMap.get(i));
                 textDiffs.add(new TextDiff(i, leftMap.get(i), j, rightMap.get(j), DiffStatus.CHANGED));
                 i++;
                 j++;
             } else if (opt[i + 1][j] >= opt[i][j + 1]) {
                 textDiffs.add(new TextDiff(i, leftMap.get(i), null, "", DiffStatus.DELETED));
-                System.out.println("< " + leftMap.get(i));
+                //System.out.println("< " + leftMap.get(i));
                 i++;
             } else {
                 textDiffs.add(new TextDiff(null, "", j, rightMap.get(j), DiffStatus.ADDED));
-                System.out.println("> " + rightMap.get(j));
+                //System.out.println("> " + rightMap.get(j));
                 j++;
             }
         }
@@ -60,18 +60,18 @@ public class DiffUtils {
         while (i < leftMap.size() || j < rightMap.size()) {
             if (i == leftMap.size()) {
                 textDiffs.add(new TextDiff(null, "", j, rightMap.get(j), DiffStatus.ADDED));
-                System.out.println("> " + rightMap.get(j));
+                //System.out.println("> " + rightMap.get(j));
                 j++;
             } else if (j == rightMap.size()) {
                 textDiffs.add(new TextDiff(i, leftMap.get(i), null, "", DiffStatus.DELETED));
-                System.out.println("< " + leftMap.get(i));
+                //System.out.println("< " + leftMap.get(i));
                 i++;
             }
         }
 
-        textDiffs.forEach(System.out::println);
+        //textDiffs.forEach(System.out::println);
 
-        System.out.println("");
+        //System.out.println("");
 
         return textDiffs;
     }

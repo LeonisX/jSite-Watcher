@@ -1,16 +1,27 @@
 package md.leonis.watcher.service;
 
-import static java.util.stream.Collectors.toMap;
-import static md.leonis.watcher.config.Config.HOME;
-import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
-import static org.jsoup.helper.StringUtil.isBlank;
-
 import com.iciql.Db;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Worker.State;
+import javafx.scene.control.TableView;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import lombok.Getter;
+import md.leonis.watcher.domain.*;
+import md.leonis.watcher.utils.Comparator;
+import md.leonis.watcher.utils.DiffUtils;
+import md.leonis.watcher.utils.JavaFxUtils;
+import md.leonis.watcher.view.BookmarksController;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.w3c.dom.NodeList;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,51 +31,13 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.IntStream;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.concurrent.Worker.State;
-import javafx.scene.control.TableView;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import lombok.Getter;
-import md.leonis.watcher.domain.Bookmark;
-import md.leonis.watcher.domain.BookmarkStatus;
-import md.leonis.watcher.domain.DiffStatus;
-import md.leonis.watcher.domain.Rule;
-import md.leonis.watcher.domain.RuleType;
-import md.leonis.watcher.domain.TextDiff;
-import md.leonis.watcher.utils.Comparator;
-import md.leonis.watcher.utils.DiffUtils;
-import md.leonis.watcher.utils.JavaFxUtils;
-import md.leonis.watcher.view.BookmarksController;
-import org.htmlcleaner.CleanerProperties;
-import org.htmlcleaner.DomSerializer;
-import org.htmlcleaner.HtmlCleaner;
-import org.htmlcleaner.JDomSerializer;
-import org.htmlcleaner.TagNode;
-import org.jsoup.Connection;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
+
+import static java.util.stream.Collectors.toMap;
+import static md.leonis.watcher.config.Config.HOME;
+import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
+import static org.jsoup.helper.StringUtil.isBlank;
 
 @Getter
 public class BookmarksService {
@@ -111,53 +84,30 @@ public class BookmarksService {
                         Files.readAllLines(Paths.get(HOME + currentBookmark.getId() + ".html"),
                                 Charset.forName(currentBookmark.getCharset())))};
 
-                textList.stream()
-                        .filter(t -> t.getStatus().equals(DiffStatus.CHANGED) || t.getStatus().equals(DiffStatus.ADDED))
-                        .forEach(t -> highlight(content, t.getRightText()));
+                if (currentBookmark.getStatus() == BookmarkStatus.CHANGED) {
+                    textList.stream()
+                            .filter(t -> t.getStatus().equals(DiffStatus.CHANGED) || t.getStatus().equals(DiffStatus.ADDED))
+                            .forEach(t -> highlight(content, t.getRightText()));
+                }
 
                 //TODO option - load from origin direct
 
                 //TODO rewrite, app preflight do before browser on content[0].
-                try {
-                    HtmlCleaner cleaner = new HtmlCleaner();
-                    CleanerProperties props = cleaner.getProperties();
-                    //props.setXXX(...);
-                    TagNode node = cleaner.clean(content[0]);
-                    org.w3c.dom.Document document = new DomSerializer(props, true).createDOM(node);
-                    correctLinks(document, "link", "href");
-                    correctLinks(document, "a", "href");
-                    correctLinks(document, "img", "src");
-                    correctLinks(document, "script", "src");
-                    TransformerFactory tf = TransformerFactory.newInstance();
-                    Transformer transformer = tf.newTransformer();
-                    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-                    StringWriter writer = new StringWriter();
-                    transformer.transform(new DOMSource(document), new StreamResult(writer));
-                    content[0] = writer.getBuffer().toString()/*.replaceAll("\n|\r", "")*/;
-                    System.out.println(content[0]);
-                } catch (ParserConfigurationException e) {
-                    e.printStackTrace();
-                } catch (TransformerConfigurationException e) {
-                    e.printStackTrace();
-                } catch (TransformerException e) {
-                    e.printStackTrace();
-                }
-
                 WebEngine webEngine = webView.getEngine();
                 webEngine.loadContent(content[0]);
                 webEngine.getLoadWorker().stateProperty().addListener((ov, oldState, newState) -> {
                     if (newState.equals(State.SUCCEEDED)) {
-                        /*correctLinks(webEngine, "link", "href");
+                        correctLinks(webEngine, "link", "href");
                         correctLinks(webEngine, "a", "href");
                         correctLinks(webEngine, "img", "src");
                         correctLinks(webEngine, "script", "src");
-                        try {
+                        /*try {
                             TransformerFactory tf = TransformerFactory.newInstance();
                             Transformer transformer = tf.newTransformer();
                             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
                             StringWriter writer = new StringWriter();
                             transformer.transform(new DOMSource(webEngine.getDocument()), new StreamResult(writer));
-                            String output = writer.getBuffer().toString()*//*.replaceAll("\n|\r", "")*//*;
+                            String output = writer.getBuffer().toString();
                             System.out.println(output);
                         } catch (TransformerConfigurationException e) {
                             e.printStackTrace();
@@ -174,8 +124,8 @@ public class BookmarksService {
         }
     }
 
-    private void correctLinks(org.w3c.dom.Document document, String tag, String attribute) {
-        NodeList nodeList = document.getElementsByTagName(tag);
+    private void correctLinks(WebEngine webEngine, String tag, String attribute) {
+        NodeList nodeList = webEngine.getDocument().getElementsByTagName(tag);
         //TODO process tree, find href, src
         for (int i = 0; i < nodeList.getLength(); i++) {
             if (((org.w3c.dom.Element) nodeList.item(i)).hasAttribute(attribute)) {
@@ -201,6 +151,8 @@ public class BookmarksService {
         try {
             if (tableView.getUserData() == null || !tableView.getUserData().equals(currentBookmark.getId())) {
                 tableView.setUserData(currentBookmark.getId());
+
+
                 //TODO refresh
                 List<String> leftList;
                 //TODO optimize
@@ -288,7 +240,7 @@ public class BookmarksService {
             Map<Integer, String> leftMap = toIndexedMap(leftList);
             Map<Integer, String> rightMap = toIndexedMap(rightList);
 
-            System.out.println(leftMap);
+            //System.out.println(leftMap);
 
             textList = DiffUtils.diff(leftMap, rightMap);
 

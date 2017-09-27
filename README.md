@@ -47,19 +47,24 @@
 Источники: 
 
 - https://github.com/jOOQ/jOOX
-- https://stackoverflow.com/questions/10356258/how-do-i-convert-a-org-w3c-dom-document-object-to-a-string
 
 - [x] Загружать страницу в WebView напрямую из файла
 - [x] Поменять данные в WebView напрямую
-- [ ] Перед показом страницы преобразовывать все относительные ссылки в абсолютные
-- [ ] 
-- [ ] a
-- [ ] img
-- [ ] link href
-- [ ] script src
-
+- [x] Перед показом страницы преобразовывать все относительные ссылки в абсолютные
+- [x] a
+- [x] img
+- [x] link href
+- [x] script src
 
 Возможные проблемы - битые html. Есть чистильщики
+
+htmlcleaner, htmlparser, jtidy, tagsoup, nekohtml, jericho с задачей не справились.
+
+JAunt, HtmlUnit не тестировались.
+
+[Примеры кода](experiments.md)
+
+На данный момент лучший парсер HTML страниц - WebView
 
 ###Фаза 4
 - [ ] Рефактор
