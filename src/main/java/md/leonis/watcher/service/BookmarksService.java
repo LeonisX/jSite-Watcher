@@ -1,6 +1,7 @@
 package md.leonis.watcher.service;
 
 import com.iciql.Db;
+import com.sun.webkit.dom.HTMLDocumentImpl;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Worker.State;
@@ -13,6 +14,7 @@ import md.leonis.watcher.utils.Comparator;
 import md.leonis.watcher.utils.DiffUtils;
 import md.leonis.watcher.utils.JavaFxUtils;
 import md.leonis.watcher.view.BookmarksController;
+import org.joox.Match;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -37,6 +39,7 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toMap;
 import static md.leonis.watcher.config.Config.HOME;
 import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
+import static org.joox.JOOX.$;
 import static org.jsoup.helper.StringUtil.isBlank;
 
 @Getter
@@ -97,6 +100,13 @@ public class BookmarksService {
                 webEngine.loadContent(content[0]);
                 webEngine.getLoadWorker().stateProperty().addListener((ov, oldState, newState) -> {
                     if (newState.equals(State.SUCCEEDED)) {
+                        //System.out.println(webEngine.getDocument().getChildNodes().item(0).getClass().getSimpleName());
+                        //System.out.println(webEngine.getDocument().getChildNodes().item(1).getClass().getSimpleName());
+                        //HTMLDocumentImpl htmlDocument = (HTMLDocumentImpl) webEngine.getDocument();
+                        //htmlDocument.caretRangeFromPoint(0, 1600).deleteContents();
+                        //htmlDocument.createRange().deleteContents();
+                        //htmlDocument.setDocumentURI("http://nashe.ru");
+                        //System.out.println(htmlDocument.getDocumentURI());
                         correctLinks(webEngine, "link", "href");
                         correctLinks(webEngine, "a", "href");
                         correctLinks(webEngine, "img", "src");
@@ -124,20 +134,32 @@ public class BookmarksService {
         }
     }
 
+    private static void n(Match match) {
+        System.out.println(match.content());
+        match.children().each().forEach(c -> {
+            n(c);
+        });
+    }
+
     private void correctLinks(WebEngine webEngine, String tag, String attribute) {
-        NodeList nodeList = webEngine.getDocument().getElementsByTagName(tag);
+        org.w3c.dom.Document document = webEngine.getDocument();
+        Match x1 = $(document);
+        n(x1);
+
+        NodeList nodeList = document.getElementsByTagName(tag);
         //TODO process tree, find href, src
         for (int i = 0; i < nodeList.getLength(); i++) {
-            if (((org.w3c.dom.Element) nodeList.item(i)).hasAttribute(attribute)) {
-                String attr = ((org.w3c.dom.Element) nodeList.item(i)).getAttribute(attribute);
+            org.w3c.dom.Element element = (org.w3c.dom.Element) nodeList.item(i);
+            if (element.hasAttribute(attribute)) {
+                String attr = element.getAttribute(attribute);
                 if (attr.startsWith("//")) {
                     attr = "http:" + attr;
-                    ((org.w3c.dom.Element) nodeList.item(i)).setAttribute(attribute, attr);
+                    element.setAttribute(attribute, attr);
                 }
                 if (attr.startsWith("/")) {
                     //TODO correct path (i. .e, remove page name)
                     attr = currentBookmark.getUrl() + attr;
-                    ((org.w3c.dom.Element) nodeList.item(i)).setAttribute(attribute, attr);
+                    element.setAttribute(attribute, attr);
                 }
             }
         }
