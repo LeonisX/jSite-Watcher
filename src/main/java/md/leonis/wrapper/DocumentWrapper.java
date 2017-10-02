@@ -47,6 +47,10 @@ public class DocumentWrapper {
             nodeValuesList.add(processDocument((Document) parentElement.getNode()));
         }
 
+        if (parentElement.getNode() instanceof HTMLDocument) {
+            nodeValuesList.add(processHTMLDocument((HTMLDocument) parentElement.getNode()));
+        }
+
         if (parentElement.getNode() instanceof CharacterData) {
             nodeValuesList.add(processCharacterData((CharacterData) parentElement.getNode()));
         }
@@ -77,7 +81,6 @@ public class DocumentWrapper {
             case "HTMLElementImpl":
             case "TextImpl":
             case "CommentImpl":
-            //case "HTMLDocumentImpl":
                 break;
             case "HTMLHeadElementImpl":
                 nodeValuesList.add(processHTMLHeadElement((HTMLHeadElement) parentElement.getNode()));
@@ -148,7 +151,27 @@ public class DocumentWrapper {
             case "HTMLLabelElementImpl":
                 nodeValuesList.add(processHTMLLabelElement((HTMLLabelElement) parentElement.getNode()));
                 break;
-                
+            case "HTMLTableElementImpl":
+                nodeValuesList.add(processHTMLTableElement((HTMLTableElement) parentElement.getNode()));
+                break;
+            case "HTMLTableSectionElementImpl":
+                nodeValuesList.add(processHTMLTableSectionElement((HTMLTableSectionElement) parentElement.getNode()));
+                break;
+            case "HTMLTableRowElementImpl":
+                nodeValuesList.add(processHTMLTableRowElement((HTMLTableRowElement) parentElement.getNode()));
+                break;
+            case "HTMLTableCellElementImpl":
+                nodeValuesList.add(processHTMLTableCellElement((HTMLTableCellElement) parentElement.getNode()));
+                break;
+            case "HTMLOListElementImpl":
+                nodeValuesList.add(processHTMLOListElement((HTMLOListElement) parentElement.getNode()));
+                break;
+            case "HTMLFontElementImpl":
+                nodeValuesList.add(processHTMLFontElement((HTMLFontElement) parentElement.getNode()));
+                break;
+            case "HTMLDListElementImpl":
+                nodeValuesList.add(processHTMLDListElement((HTMLDListElement) parentElement.getNode()));
+                break;
                 
             default:
                 throw new RuntimeException(className);
@@ -156,6 +179,7 @@ public class DocumentWrapper {
 
         Collections.reverse(nodeValuesList);
 
+        System.out.println();
         System.out.println(parentElement.getXpath());
         nodeValuesList.forEach(NodeValues::print);
 
@@ -165,6 +189,145 @@ public class DocumentWrapper {
             walkDocument(element);
         }
 
+    }
+
+    private NodeValues processHTMLDListElement(HTMLDListElement node) {
+        NodeValues result = new NodeValues("HTMLDListElement");
+        result.getValues().put("Compact", node.getCompact());
+        // setCompact
+        // setStart
+        // setType
+        return result;
+    }
+
+    private NodeValues processHTMLFontElement(HTMLFontElement node) {
+        NodeValues result = new NodeValues("HTMLFontElement");
+        result.getValues().put("Color", node.getColor());
+        result.getValues().put("Face", node.getFace());
+        result.getValues().put("Size", node.getSize());
+        // setColor
+        // setFace
+        // setSize
+        return result;
+    }
+
+    private NodeValues processHTMLOListElement(HTMLOListElement node) {
+        NodeValues result = new NodeValues("HTMLOListElement");
+        result.getValues().put("Compact", node.getCompact());
+        result.getValues().put("Start", node.getStart());
+        result.getValues().put("Type", node.getType());
+        // setCompact
+        // setStart
+        // setType
+        return result;
+    }
+
+    private NodeValues processHTMLTableCellElement(HTMLTableCellElement node) {
+        NodeValues result = new NodeValues("HTMLTableCellElement");
+        result.getValues().put("CellIndex", node.getCellIndex());
+        result.getValues().put("Abbr", node.getAbbr());
+        result.getValues().put("Align", node.getAlign());
+        result.getValues().put("Axis", node.getAxis());
+        result.getValues().put("BgColor", node.getBgColor());
+        result.getValues().put("Ch", node.getCh());
+        result.getValues().put("ChOff", node.getChOff());
+        result.getValues().put("ColSpan", node.getColSpan());
+        result.getValues().put("Headers", node.getHeaders());
+        result.getValues().put("Height", node.getHeight());
+        result.getValues().put("NoWrap", node.getNoWrap());
+        result.getValues().put("RowSpan", node.getRowSpan());
+        result.getValues().put("Scope", node.getScope());
+        result.getValues().put("VAlign", node.getVAlign());
+        result.getValues().put("Width", node.getWidth());
+        // setAbbr
+        // setAxis
+        // setBgColor
+        // setCh
+        // setChOff
+        // setColSpan
+        // setHeaders
+        // setHeight
+        // setNoWrap
+        // setRowSpan
+        // setScope
+        // setVAlign
+        // setWidth
+        return result;
+    }
+
+    private NodeValues processHTMLTableRowElement(HTMLTableRowElement node) {
+        NodeValues result = new NodeValues("HTMLTableRowElement");
+        result.getValues().put("RowIndex", node.getRowIndex());
+        result.getValues().put("SectionRowIndex", node.getSectionRowIndex());
+        result.getValues().put("Cells", node.getCells());
+        result.getValues().put("Align", node.getAlign());
+        result.getValues().put("BgColor", node.getBgColor());
+        result.getValues().put("Ch", node.getCh());
+        result.getValues().put("ChOff", node.getChOff());
+        result.getValues().put("VAlign", node.getVAlign());
+        // setAlign
+        // setBgColor
+        // setCh​
+        // setChOff
+        // setVAlign
+        // insertCell
+        // deleteCell
+        return result;
+    }
+
+    private NodeValues processHTMLTableSectionElement(HTMLTableSectionElement node) {
+        NodeValues result = new NodeValues("HTMLTableSectionElement");
+        result.getValues().put("Align", node.getAlign());
+        result.getValues().put("Ch", node.getCh());
+        result.getValues().put("ChOff", node.getChOff());
+        result.getValues().put("VAlign", node.getVAlign());
+        result.getValues().put("Rows", node.getRows());
+        // setAlign
+        // setCh
+        // setChOff
+        // setVAlign
+        // insertRow
+        // deleteRow
+        return result;
+    }
+
+    private NodeValues processHTMLTableElement(HTMLTableElement node) {
+        NodeValues result = new NodeValues("HTMLTableElement");
+        result.getValues().put("Caption", node.getCaption());
+        result.getValues().put("THead", node.getTHead());
+        result.getValues().put("TFoot", node.getTFoot());
+        result.getValues().put("Rows", node.getRows());
+        result.getValues().put("TBodies", node.getTBodies());
+        result.getValues().put("Align", node.getAlign());
+        result.getValues().put("BgColor", node.getBgColor());
+        result.getValues().put("Border", node.getBorder());
+        result.getValues().put("CellPadding", node.getCellPadding());
+        result.getValues().put("CellSpacing", node.getCellSpacing());
+        result.getValues().put("Frame", node.getFrame());
+        result.getValues().put("Rules", node.getRules());
+        result.getValues().put("Summary", node.getSummary());
+        result.getValues().put("Width", node.getWidth());
+        // setCaption
+        // setTHead
+        // setTFoot
+        // setAlign
+        // setBgColor
+        // setBorder
+        // setCellPadding
+        // setCellSpacing
+        // setFrame
+        // setRules
+        // setSummary
+        // setWidth
+        // createTHead
+        // deleteTHead
+        // createTFoot
+        // deleteTFoot
+        // createCaption
+        // deleteCaption​
+        // insertRow​
+        // deleteRow
+        return result;
     }
 
     private NodeValues processComment(Comment node) {

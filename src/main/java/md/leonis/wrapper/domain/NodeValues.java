@@ -23,19 +23,22 @@ public class NodeValues {
     }
 
     public Map<String, Object> getFilteredValues() {
-        return values.entrySet()
+        Map<String, Object> filteredValues = new LinkedHashMap<>();
+        values.entrySet()
                 .stream()
                 .filter(a -> a.getValue() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .forEach(e -> filteredValues.put(e.getKey(), e.getValue()));
+        return filteredValues;
     }
 
     public void print() {
-        System.out.println(">>> " + name);
-        values.forEach((key, value) -> {
-            System.out.print(String.format("%-15s", key));
-            System.out.println(value);
-        });
-        System.out.println("===============================");
-        System.out.println();
+        Map<String, Object> filteredValues = getFilteredValues();
+        if (!filteredValues.isEmpty()) {
+            System.out.println("  " + name);
+            filteredValues.forEach((key, value) -> {
+                System.out.print(String.format("    %-15s", key));
+                System.out.println(value);
+            });
+        }
     }
 }
