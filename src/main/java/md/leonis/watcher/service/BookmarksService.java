@@ -1,26 +1,10 @@
 package md.leonis.watcher.service;
 
-import com.iciql.Db;
-import com.sun.webkit.dom.HTMLDocumentImpl;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.concurrent.Worker.State;
-import javafx.scene.control.TableView;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
-import lombok.Getter;
-import md.leonis.watcher.domain.*;
-import md.leonis.watcher.utils.Comparator;
-import md.leonis.watcher.utils.DiffUtils;
-import md.leonis.watcher.utils.JavaFxUtils;
-import md.leonis.watcher.view.BookmarksController;
-import org.joox.Match;
-import org.jsoup.Connection;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.w3c.dom.NodeList;
+import static java.util.stream.Collectors.toMap;
+import static md.leonis.watcher.config.Config.HOME;
+import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
 
+import com.iciql.Db;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,14 +17,36 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
-
-import static java.util.stream.Collectors.toMap;
-import static md.leonis.watcher.config.Config.HOME;
-import static md.leonis.watcher.utils.JavaFxUtils.bookmarksService;
-import static org.joox.JOOX.$;
-import static org.jsoup.helper.StringUtil.isBlank;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Worker;
+import javafx.concurrent.Worker.State;
+import javafx.scene.control.TableView;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import lombok.Getter;
+import md.leonis.watcher.domain.Bookmark;
+import md.leonis.watcher.domain.BookmarkStatus;
+import md.leonis.watcher.domain.DiffStatus;
+import md.leonis.watcher.domain.Rule;
+import md.leonis.watcher.domain.RuleType;
+import md.leonis.watcher.domain.TextDiff;
+import md.leonis.watcher.utils.Comparator;
+import md.leonis.watcher.utils.DiffUtils;
+import md.leonis.watcher.utils.DocumentWrapper;
+import md.leonis.watcher.utils.JavaFxUtils;
+import md.leonis.watcher.view.BookmarksController;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.w3c.dom.NodeList;
 
 @Getter
 public class BookmarksService {
@@ -58,13 +64,13 @@ public class BookmarksService {
     private List<Rule> rules = Arrays.asList(rule);
 
     private List<Bookmark> bookmarks = new ArrayList<>(
-            Arrays.asList(new Bookmark(1, 1, "http://tv-games.ru", "TiVi", null, BookmarkStatus.NEW, "", "", rules),
+            Arrays.asList(new Bookmark(1, 1, "http://tv-games.ru", "TiVi", null, BookmarkStatus.NEW, "", "", rules)/*,
                     new Bookmark(4, 1, "http://www.emu-land.net", "mumuland", null, BookmarkStatus.NEW, "", "",
-                            new ArrayList<>())/*,
+                            new ArrayList<>()*/)/*,
             new Bookmark(2, 1, "http://yandex.ru", "Yasha", null, BookmarkStatus.NEW, "", "", new ArrayList<>()),
             new Bookmark(3, 1, "http://google.com", "Grisha", null, BookmarkStatus.NEW, "", "", new ArrayList<>()),
             new Bookmark(4, 1, "http://www.emu-land.net", "mumuland", null, BookmarkStatus.NEW, "", "", new ArrayList<>()),
-            new Bookmark(5, 1, "http://www.emu-russia.net", "emurasha", null, BookmarkStatus.NEW, "", "", new ArrayList<>())*/));
+            new Bookmark(5, 1, "http://www.emu-russia.net", "emurasha", null, BookmarkStatus.NEW, "", "", new ArrayList<>())*/);
 
     private ObservableList<Bookmark> bookmarkObservableList = FXCollections.observableArrayList(bookmarks);
 
@@ -134,17 +140,8 @@ public class BookmarksService {
         }
     }
 
-    private static void n(Match match) {
-        System.out.println(match.content());
-        match.children().each().forEach(c -> {
-            n(c);
-        });
-    }
-
     private void correctLinks(WebEngine webEngine, String tag, String attribute) {
         org.w3c.dom.Document document = webEngine.getDocument();
-        Match x1 = $(document);
-        n(x1);
 
         NodeList nodeList = document.getElementsByTagName(tag);
         //TODO process tree, find href, src
@@ -170,59 +167,83 @@ public class BookmarksService {
     }
 
     public void refreshTableView(TableView<TextDiff> tableView) {
-        try {
-            if (tableView.getUserData() == null || !tableView.getUserData().equals(currentBookmark.getId())) {
-                tableView.setUserData(currentBookmark.getId());
+        if (tableView.getUserData() == null || !tableView.getUserData().equals(currentBookmark.getId())) {
+            tableView.setUserData(currentBookmark.getId());
 
-
-                //TODO refresh
-                List<String> leftList;
-                //TODO optimize
-                if (currentBookmark.getStatus() == BookmarkStatus.CHANGED
-                        || currentBookmark.getStatus() == BookmarkStatus.UNCHANGED
-                        || currentBookmark.getStatus() == BookmarkStatus.ERROR) {
-                    Document doc = Jsoup
-                            .parse(new File(HOME + currentBookmark.getId() + "o.html"), currentBookmark.getCharset(),
-                                    currentBookmark.getUrl());
-                    leftList = walkTree(doc.body(), new ArrayList<>());
-                } else {
-                    leftList = new ArrayList<>();
-                }
-
-                List<String> rightList;
-                if (currentBookmark.getStatus() != BookmarkStatus.NEW) {
-                    Document doc = Jsoup
-                            .parse(new File(HOME + currentBookmark.getId() + ".html"), currentBookmark.getCharset(),
-                                    currentBookmark.getUrl());
-                    rightList = walkTree(doc.body(), new ArrayList<>());
-                } else {
-                    rightList = new ArrayList<>();
-                }
-
-                Map<Integer, String> leftMap = toIndexedMap(leftList);
-                Map<Integer, String> rightMap = toIndexedMap(rightList);
-
-                textList = DiffUtils.diff(leftMap, rightMap);
-
-                list = FXCollections.observableList(textList);
-
-                tableView.setItems(list);
+            if (currentBookmark.getStatus() == BookmarkStatus.CHANGED
+                    || currentBookmark.getStatus() == BookmarkStatus.UNCHANGED
+                    || currentBookmark.getStatus() == BookmarkStatus.ERROR) {
+                WebEngine webEngine = new WebEngine();
+                webEngine.getLoadWorker().stateProperty().addListener(new LeftTableListener(tableView, webEngine));
+                webEngine.load(new File(HOME + currentBookmark.getId() + "o.html").toURI().toString());
+            } else {
+                loadRightPart(new ArrayList<>(), tableView);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
+    }
+
+    private class LeftTableListener implements ChangeListener<State> {
+        private TableView<TextDiff> tableView;
+        private WebEngine webEngine;
+
+        LeftTableListener(TableView<TextDiff> tableView, WebEngine webEngine) {
+            this.tableView = tableView;
+            this.webEngine = webEngine;
+        }
+
+        @Override
+        public void changed(ObservableValue<? extends State> obs, State oldState, State newState) {
+            if (newState == Worker.State.SUCCEEDED) {
+                DocumentWrapper documentWrapper = DocumentWrapper.wrapDocument(webEngine.getDocument());
+                List<String> leftList = documentWrapper.walkDocument();
+                loadRightPart(leftList, tableView);
+            }
+        }
+    }
+
+    private void loadRightPart(List<String> leftList, TableView<TextDiff> tableView) {
+        if (currentBookmark.getStatus() != BookmarkStatus.NEW) {
+            WebEngine webEngine = new WebEngine();
+            webEngine.getLoadWorker().stateProperty().addListener(new RightTableListener(tableView, leftList, webEngine));
+            webEngine.load(new File(HOME + currentBookmark.getId() + "o.html").toURI().toString());
+        } else {
+            process(leftList, new ArrayList<>(), tableView);
+        }
+    }
+
+    private class RightTableListener implements ChangeListener<State> {
+        private List<String> leftList;
+        private TableView<TextDiff> tableView;
+        private WebEngine webEngine;
+
+        RightTableListener(TableView<TextDiff> tableView, List<String> leftList, WebEngine webEngine) {
+            this.tableView = tableView;
+            this.leftList = leftList;
+            this.webEngine = webEngine;
+        }
+
+        @Override
+        public void changed(ObservableValue<? extends State> obs, State oldState, State newState) {
+            if (newState == Worker.State.SUCCEEDED) {
+                    // new page has loaded, process:\
+                    DocumentWrapper documentWrapper = DocumentWrapper.wrapDocument(webEngine.getDocument());
+                    List<String> rightList = documentWrapper.walkDocument();
+                    process(leftList, rightList, tableView);
+            }
+        }
+    }
+
+
+    private void process(List<String> leftList, List<String> rightList, TableView<TextDiff> tableView) {
+        Map<Integer, String> leftMap = toIndexedMap(leftList);
+        Map<Integer, String> rightMap = toIndexedMap(rightList);
+        textList = DiffUtils.diff(leftMap, rightMap);
+        list = FXCollections.observableList(textList);
+        tableView.setItems(list);
     }
 
     private static Map<Integer, String> toIndexedMap(List<String> stringList) {
         return IntStream.range(0, stringList.size()).boxed().collect(toMap(idx -> idx, stringList::get));
-    }
-
-    private static List<String> walkTree(Element element, List<String> collection) {
-        if (!isBlank(element.ownText())) {
-            collection.add(element.ownText());
-        }
-        element.children().forEach(e -> walkTree(e, collection));
-        return collection;
     }
 
     public void checkBookmarks() throws IOException {
@@ -248,23 +269,85 @@ public class BookmarksService {
             bookmark.setStatus(BookmarkStatus.INITIALIZED);
             System.out.println("initialized");
         } else {
-            File tempFile = savePageToTmp(bookmark.getUrl());
+            WebEngine webEngine = new WebEngine();
+            webEngine.getLoadWorker().stateProperty().addListener(new LeftListener(bookmark, webEngine));
+            System.out.println(HOME + bookmark.getId() + ".html");
+            webEngine.load(new File(HOME + bookmark.getId() + ".html").toURI().toString());
+        }
+    }
 
-            Path oldFile = Paths.get(HOME + bookmark.getId() + ".html");
+    private class LeftListener implements ChangeListener<State> {
+        private Bookmark bookmark;
+        private WebEngine webEngine;
 
-            Document doc = Jsoup
-                    .parse(new File(HOME + bookmark.getId() + ".html"), bookmark.getCharset(), bookmark.getUrl());
-            List<String> leftList = walkTree(doc.body(), new ArrayList<>());
+        LeftListener(Bookmark bookmark, WebEngine webEngine) {
+            this.bookmark = bookmark;
+            this.webEngine = webEngine;
+        }
 
-            doc = Jsoup.parse(tempFile, null, bookmark.getUrl());
-            List<String> rightList = walkTree(doc.body(), new ArrayList<>());
+        @Override
+        public void changed(ObservableValue<? extends State> obs, State oldState, State newState) {
+            System.out.println("In loadLeftPart: " + newState);
+            if (newState == Worker.State.SUCCEEDED) {
+                webEngine.getLoadWorker().stateProperty().removeListener(this);
+                DocumentWrapper documentWrapper = DocumentWrapper.wrapDocument(webEngine.getDocument());
+                List<String> leftList = documentWrapper.walkDocument();
+                loadRightPart(leftList, bookmark);
+            }
+        }
+    }
 
+    private void loadRightPart(List<String> leftList, Bookmark bookmark) {
+        System.out.println("In loadRightPart");
+        File tempFile = null;
+        try {
+            tempFile = savePageToTmp(bookmark.getUrl());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        WebEngine webEngine = new WebEngine();
+        webEngine.getLoadWorker().stateProperty().addListener(new RightListener(leftList, bookmark, tempFile, webEngine));
+        System.out.println(tempFile.toURI().toString());
+        webEngine.load(tempFile.toURI().toString());
+    }
+
+    private class RightListener implements ChangeListener<State> {
+        private List<String> leftList;
+        private Bookmark bookmark;
+        private File tempFile;
+        private WebEngine webEngine;
+
+        public RightListener(List<String> leftList, Bookmark bookmark, File tempFile, WebEngine webEngine) {
+            this.leftList = leftList;
+            this.bookmark = bookmark;
+            this.tempFile = tempFile;
+            this.webEngine = webEngine;
+        }
+
+        @Override
+        public void changed(ObservableValue<? extends State> obs, State oldState, State newState) {
+            System.out.println("In loadRightPart: " + newState);
+            if (newState == Worker.State.SUCCEEDED) {
+                // new page has loaded, process:\
+                DocumentWrapper documentWrapper = DocumentWrapper.wrapDocument(webEngine.getDocument());
+                List<String> rightList = documentWrapper.walkDocument();
+                BookmarksService.this.process(leftList, rightList, bookmark, tempFile);
+            }
+        }
+    }
+
+
+    private void process(List<String> leftList, List<String> rightList, Bookmark bookmark, File tempFile) {
+        System.out.println("In process");
+        try {
             Map<Integer, String> leftMap = toIndexedMap(leftList);
             Map<Integer, String> rightMap = toIndexedMap(rightList);
 
             //System.out.println(leftMap);
 
             textList = DiffUtils.diff(leftMap, rightMap);
+
+            Path oldFile = Paths.get(HOME + bookmark.getId() + ".html");
 
             BasicFileAttributes attr = Files.readAttributes(oldFile, BasicFileAttributes.class);
 
@@ -280,15 +363,13 @@ public class BookmarksService {
                 //JavaFxUtils.showAlert("Changed page: " + bookmark.getTitle(), "The page was changed", bookmark.getUrl(), AlertType.INFORMATION);
                 Files.move(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"),
                         StandardCopyOption.REPLACE_EXISTING);
-                Files.move(tempFile.toPath(), Paths.get(HOME + bookmark.getId() + ".html"),
-                        StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tempFile.toPath(), Paths.get(HOME + bookmark.getId() + ".html"), StandardCopyOption.REPLACE_EXISTING);
                 //TODO update date, and status in db
                 bookmark.setDate(new Date());
                 bookmark.setStatus(BookmarkStatus.CHANGED);
             } else {
                 if (bookmark.getStatus() == BookmarkStatus.INITIALIZED) {
-                    Files.copy(Paths.get(HOME + bookmark.getId() + ".html"),
-                            Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(Paths.get(HOME + bookmark.getId() + ".html"), Paths.get(HOME + bookmark.getId() + "o.html"), StandardCopyOption.REPLACE_EXISTING);
                 }
                 if (bookmark.getStatus() != BookmarkStatus.UNCHANGED) {
                     bookmark.setStatus(BookmarkStatus.UNCHANGED);
@@ -296,6 +377,8 @@ public class BookmarksService {
                 }
                 System.out.println("unchanged");
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

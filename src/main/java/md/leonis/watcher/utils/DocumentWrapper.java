@@ -1,4 +1,4 @@
-package md.leonis.wrapper;
+package md.leonis.watcher.utils;
 
 import lombok.Getter;
 import md.leonis.wrapper.domain.Element;
@@ -7,7 +7,6 @@ import md.leonis.wrapper.domain.NodeValues;
 import org.w3c.dom.*;
 import org.w3c.dom.html.*;
 
-import javax.lang.model.type.UnknownTypeException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +25,7 @@ public class DocumentWrapper {
     private DocumentWrapper(Document document) {
         this.document = document;
         elements = new ArrayList<>();
-        walkDocument(new Element(document, null, ElementType.ROOT));
+        //walkDocument(new Element(document, null, ElementType.ROOT));
     }
 
     public static DocumentWrapper wrapDocument(Document document) {
@@ -880,5 +879,24 @@ public class DocumentWrapper {
 
     private void walkTree(Node node, Element parent) {
         elements.add(parent);
+    }
+
+    public List<String> walkDocument() {
+        List<String> list = new ArrayList<>();
+        walkDocument(document, list);
+        return list;
+    }
+
+    private void walkDocument(Node node, List<String> list) {
+        //TODO detect right text content
+        System.out.print(node.getNodeName());
+        System.out.print(" : " + node.getNodeType());
+        System.out.println(" : " + node.getNodeValue());
+
+        list.add(node.getTextContent());
+        for (int i = 0; i < node.getChildNodes().getLength(); i++) {
+            Node child = node.getChildNodes().item(i);
+            walkDocument(child, list);
+        }
     }
 }
