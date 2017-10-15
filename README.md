@@ -94,9 +94,21 @@ HtmlUnit - надо разбираться. Тянет много зависим
 
 Xerces - плохо парсит битые html, не так хорошо, как WebEngine и HtmlUnit
 
-HtmlUnit дохнет на реальных сраницах (JS)
+HtmlUnit дохнет на реальных страницах (JS)
 
 План такой:
+
+Написать свой HTML парсер 
+
+https://html.spec.whatwg.org/multipage/parsing.html#parsing
+
+- [x] предопределение кодировки страницы
+- [ ] покрыть грамотными тестами
+- [ ] Preprocessing the input stream
+- [ ] Parse state
+- [ ] Tokenization
+- [ ] Tree construction
+- [ ]
 
 ### Фаза 4
 
