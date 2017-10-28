@@ -2,10 +2,11 @@ package md.leonis.parser;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import md.leonis.parser.domain.Attribute;
 
 @Slf4j
 @Getter
-public class AttributeParser {
+class AttributeParser {
 
     private String asciiHtmlString;
     private int position;
@@ -13,12 +14,12 @@ public class AttributeParser {
     // Let attribute name and attribute value be the empty string.
     Attribute attribute = new Attribute("", "");
 
-    public AttributeParser(String asciiHtmlString, int position) {
+    AttributeParser(String asciiHtmlString, int position) {
         this.asciiHtmlString = asciiHtmlString;
         this.position = position;
     }
 
-    public Attribute getAttribute() {
+    Attribute getAttribute() {
         while (position < asciiHtmlString.length()) {
             log.info("    [" + substring(16) + "] (" + position + ")");
             char character = asciiHtmlString.charAt(position);
@@ -60,7 +61,7 @@ public class AttributeParser {
                     // Jump to the step below labeled spaces.
                     if (processSpaces()) {
                         return attribute;
-                    };
+                    }
                 } else
                     // If it is 0x2F (/) or 0x3E (>)
                     if (0x2F == character || 0x3E == character) {

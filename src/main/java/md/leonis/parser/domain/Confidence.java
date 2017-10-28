@@ -1,4 +1,4 @@
-package md.leonis.parser;
+package md.leonis.parser.domain;
 
 public enum Confidence {
 

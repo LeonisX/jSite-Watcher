@@ -13,6 +13,10 @@ public class Main {
         //log.warn("Result: " + HtmlParser.parse(html.getBytes()));
 
         html = "<meta http-equiv=\"content-type\" content=\"text/html; charset=windows-1251\" />";
+        //log.warn("Result: " + HtmlParser.parse(html.getBytes()));
+
+        html = "<meta content=\"text/html; charset=windows-1251\" http-equiv=\"content-type\" /><p>asd</p>";
+        html = "<p>asd</p>";
         log.warn("Result: " + HtmlParser.parse(html.getBytes()));
     }
 }

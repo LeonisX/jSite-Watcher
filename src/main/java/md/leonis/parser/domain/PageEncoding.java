@@ -1,4 +1,4 @@
-package md.leonis.parser;
+package md.leonis.parser.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
