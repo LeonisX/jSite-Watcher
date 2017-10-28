@@ -16,7 +16,7 @@ public class Main {
         //log.warn("Result: " + HtmlParser.parse(html.getBytes()));
 
         html = "<meta content=\"text/html; charset=windows-1251\" http-equiv=\"content-type\" /><p>asd</p>";
-        html = "<p>asd</p>";
+        html = "<p attr=asd e=2>asd</p>";
         log.warn("Result: " + HtmlParser.parse(html.getBytes()));
     }
 }

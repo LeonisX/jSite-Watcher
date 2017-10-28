@@ -40,7 +40,8 @@ class Constants {
     // Controls, other than ASCII whitespace and U+0000 NULL characters
     static final Set<Integer> CONTROL_WO_WHITESPACES_SET;
 
-    // TODO An `ASCII digit` is a code point in the range U+0030 (0) to U+0039 (9), inclusive.
+    // An `ASCII digit` is a code point in the range U+0030 (0) to U+0039 (9), inclusive.
+    static final Set<Character> ASCII_DIGIT;
 
     // TODO An `ASCII upper hex digit` is an ASCII digit or a code point in the range U+0041 (A) to U+0046 (F), inclusive.
 
@@ -57,7 +58,8 @@ class Constants {
     // An `ASCII alpha` is an ASCII upper alpha or ASCII lower alpha.
     static final Set<Character> ASCII_ALPHA;
 
-    // TODO An `ASCII alphanumeric` is an ASCII digit or ASCII alpha.
+    // An `ASCII alphanumeric` is an ASCII digit or ASCII alpha.
+    static final Set<Character> ASCII_ALPHANUMERIC;
 
     static {
         Set<Integer> codePointsSet = new HashSet<>();
@@ -93,6 +95,12 @@ class Constants {
         CONTROL_WO_WHITESPACES_SET = Collections.unmodifiableSet(codePointsSet);
 
         Set<Character> charactersSet = new HashSet<>();
+        for (int i = 0x0030; i <= 0x0039; i++) {
+            charactersSet.add((char) i);
+        }
+        ASCII_DIGIT = Collections.unmodifiableSet(charactersSet);
+
+        charactersSet = new HashSet<>();
         for (int i = 0x0041; i <= 0x005A; i++) {
             charactersSet.add((char) i);
         }
@@ -107,6 +115,10 @@ class Constants {
         charactersSet = new HashSet<>(ASCII_UPPER_ALPHA);
         charactersSet.addAll(ASCII_LOWER_ALPHA);
         ASCII_ALPHA = Collections.unmodifiableSet(charactersSet);
+
+        charactersSet = new HashSet<>(ASCII_DIGIT);
+        charactersSet.addAll(ASCII_ALPHA);
+        ASCII_ALPHANUMERIC = Collections.unmodifiableSet(charactersSet);
     }
 
 }

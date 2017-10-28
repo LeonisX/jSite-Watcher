@@ -10,12 +10,17 @@ import lombok.ToString;
 // comment and character tokens have data.
 public class CharacterToken implements Token {
 
-    private char data;
+    private String data;
 
     private TokenType type;
 
     public CharacterToken(char data) {
-        this.data = data;
+        this.data = String.valueOf(data);
+        type = TokenType.CHARACTER;
+    }
+
+    public CharacterToken(StringBuilder temporaryBuffer) {
+        this.data = temporaryBuffer.toString();
         type = TokenType.CHARACTER;
     }
 }

@@ -31,6 +31,7 @@ public class Parser {
     private TagToken tagToken;
     private Attribute attribute;
     private CommentToken commentToken;
+    private StringBuilder temporaryBuffer;
 
     Parser(byte[] html, String encoding) {
         this.html = html;
@@ -105,11 +106,20 @@ public class Parser {
                 case ATTRIBUTE_VALUE_DOUBLE_QUOTED:
                     inAttributeValueDoubleQuoted();
                     break;
+                case ATTRIBUTE_VALUE_SINGLE_QUOTED:
+                    inAttributeValueSingleQuoted();
+                    break;
+                case ATTRIBUTE_VALUE_UNQUOTED:
+                    inAttributeValueUnquoted();
+                    break;
                 case AFTER_ATTRIBUTE_VALUE_QUOTED:
                     inAfterAttributeValue();
                     break;
                 case SELF_CLOSING_START_TAG:
                     inSelfClosingStartTag();
+                    break;
+                case CHARACTER_REFERENCE:
+                    inCharacterReferenceState();
                     break;
                 default:
                     System.out.println(tokens);
@@ -129,7 +139,8 @@ public class Parser {
             return;
         }
         switch (htmlString.charAt(position)) {
-            // U+0026 AMPERSAND (&): Set the return state to the data state. Switch to the character reference state.
+            // U+0026 AMPERSAND (&): Set the return state to the data state.
+            // Switch to the character reference state.
             case '&':
                 returnState = State.DATA;
                 state = State.CHARACTER_REFERENCE;
@@ -463,11 +474,6 @@ public class Parser {
         }
     }
 
-
-    // TODO add this
-    // tagToken.addAttribute(attribute);
-    // attribute = null;
-
     //12.2.5.34 After attribute name state
     private void inAfterAttributeName() {
         // Consume the next input character:
@@ -608,15 +614,131 @@ public class Parser {
                 position++;
                 break;
             default:
+                // Anything else: Append the current input character to the current attribute's value.
                 attribute.setValue(attribute.getValue() + c);
                 position++;
                 break;
         }
     }
 
-    //TODO 12.2.5.37 Attribute value (single-quoted) state
-    //TODO 12.2.5.38 Attribute value (unquoted) state
+    //12.2.5.37 Attribute value (single-quoted) state
+    private void inAttributeValueSingleQuoted() {
+        // Consume the next input character:
+        // This is an eof-in-tag parse error. Emit an end-of-file token.
+        if (position == length) {
+            log.error("eof-in-tag");
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0027 APOSTROPHE (')
+            case '\'':
+                // Switch to the after attribute value (quoted) state.
+                state = State.AFTER_ATTRIBUTE_VALUE_QUOTED;
+                tagToken.addAttribute(attribute);
+                attribute = null;
+                position++;
+                break;
+            // U+0026 AMPERSAND (&)
+            case '&':
+                // Set the return state to the attribute value (single-quoted) state.
+                // Switch to the character reference state.
+                returnState = State.ATTRIBUTE_VALUE_SINGLE_QUOTED;
+                state = State.CHARACTER_REFERENCE;
+                position++;
+                break;
+            // U+0000 NULL
+            case 0x0000:
+                // This is an unexpected-null-character parse error.
+                log.error("unexpected-null-character");
+                // Append a U+FFFD REPLACEMENT CHARACTER character to the current attribute's name.
+                attribute.setName(attribute.getName() + (char) 0xFFFD);
+                position++;
+                break;
+            default:
+                // Anything else: Append the current input character to the current attribute's value.
+                attribute.setValue(attribute.getValue() + c);
+                position++;
+                break;
+        }
+    }
 
+    //12.2.5.38 Attribute value (unquoted) state
+    private void inAttributeValueUnquoted() {
+        // Consume the next input character:
+        // This is an eof-in-tag parse error. Emit an end-of-file token.
+        if (position == length) {
+            log.error("eof-in-tag");
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                //Switch to the before attribute name state.
+                state = State.BEFORE_ATTRIBUTE_NAME;
+                tagToken.addAttribute(attribute);
+                attribute = null;
+                position++;
+                break;
+            // U+0026 AMPERSAND (&)
+            case '&':
+                // Set the return state to the attribute value (unquoted) state.
+                // Switch to the character reference state.
+                returnState = State.ATTRIBUTE_VALUE_UNQUOTED;
+                state = State.CHARACTER_REFERENCE;
+                position++;
+                break;
+            //U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Switch to the data state. Emit the current tag token.
+                tagToken.addAttribute(attribute);
+                attribute = null;
+                tokens.add(tagToken);
+                state = State.DATA;
+                position++;
+                break;
+            // U+0000 NULL
+            case 0x0000:
+                // This is an unexpected-null-character parse error.
+                log.error("unexpected-null-character");
+                // Append a U+FFFD REPLACEMENT CHARACTER character to the current attribute's name.
+                attribute.setName(attribute.getName() + (char) 0xFFFD);
+                position++;
+                break;
+            // U+0022 QUOTATION MARK (")
+            case '"':
+                // U+0027 APOSTROPHE (')
+            case '\'':
+                // U+003C LESS-THAN SIGN (<)
+            case '<':
+                // U+003D EQUALS SIGN (=)
+            case '=':
+                // U+0060 GRAVE ACCENT (`)
+            case '`':
+                // This is an unexpected-character-in-unquoted-attribute-value parse error.
+                log.error("unexpected-character-in-unquoted-attribute-value");
+                // Treat it as per the "anything else" entry below.
+                attribute.setValue(attribute.getValue() + c);
+                position++;
+                break;
+            default:
+                // Anything else: Append the current input character to the current attribute's value.
+                attribute.setValue(attribute.getValue() + c);
+                position++;
+                break;
+        }
+    }
 
     //12.2.5.39 After attribute value (quoted) state
     private void inAfterAttributeValue() {
@@ -723,6 +845,7 @@ public class Parser {
     //TODO 12.2.5.50 Comment end dash state
     //TODO 12.2.5.51 Comment end state
     //TODO 12.2.5.52 Comment end bang state
+
     //TODO 12.2.5.53 DOCTYPE state
     //TODO 12.2.5.54 Before DOCTYPE name state
     //TODO 12.2.5.55 DOCTYPE name state
@@ -739,10 +862,43 @@ public class Parser {
     //TODO 12.2.5.66 DOCTYPE system identifier (single-quoted) state
     //TODO 12.2.5.67 After DOCTYPE system identifier state
     //TODO 12.2.5.68 Bogus DOCTYPE state
+
     //TODO 12.2.5.69 CDATA section state
     //TODO 12.2.5.70 CDATA section bracket state
     //TODO 12.2.5.71 CDATA section end state
-    //TODO 12.2.5.72 Character reference state
+
+    //12.2.5.72 Character reference state
+    private void inCharacterReferenceState() {
+        // Set the temporary buffer to the empty string.
+        // Append a U+0026 AMPERSAND (&) character to the temporary buffer.
+        temporaryBuffer = new StringBuilder("&");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0023 NUMBER SIGN (#)
+            case '#':
+                // Append the current input character to the temporary buffer.
+                temporaryBuffer.append(c);
+                // Switch to the numeric character reference state.
+                state = State.NUMERIC_CHARACTER_REFERENCE;
+                position++;
+                break;
+            default:
+                // ASCII alphanumeric: Reconsume in the named character reference state.
+                if (Constants.ASCII_ALPHANUMERIC.contains(c)) {
+                    state = State.NAMED_CHARACTER_REFERENCE;
+                    break;
+                } else {
+                    // Anything else: Flush code points consumed as a character reference.
+                    flushCodePoints();
+                    // Reconsume in the return state.
+                    state = returnState;
+                    position++;
+                    break;
+                }
+        }
+    }
+
     //TODO 12.2.5.73 Named character reference state
     //TODO 12.2.5.74 Ambiguous ampersand state
     //TODO 12.2.5.75 Numeric character reference state
@@ -752,4 +908,25 @@ public class Parser {
     //TODO 12.2.5.79 Decimal character reference state
     //TODO 12.2.5.80 Numeric character reference end state
 
+    // When a state says to flush code points consumed as a character reference,
+    // it means that for each code point in the temporary buffer
+    // (in the order they were added to the buffer) user agent must append the
+    // code point from the buffer to the current attribute's value if the
+    // character reference was consumed as part of an attribute, or emit
+    // the code point as a character token otherwise.
+    private void flushCodePoints() {
+        switch (returnState) {
+            case DATA:
+                tokens.add(new CharacterToken(temporaryBuffer));
+                break;
+            case ATTRIBUTE_VALUE_DOUBLE_QUOTED:
+            case ATTRIBUTE_VALUE_SINGLE_QUOTED:
+            case ATTRIBUTE_VALUE_UNQUOTED:
+                attribute.setValue(attribute.getValue().concat(temporaryBuffer.toString()));
+                break;
+            default:
+                throw new RuntimeException("Unknown return state");
+        }
+        temporaryBuffer = null;
+    }
 }
