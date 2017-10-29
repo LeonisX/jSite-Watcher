@@ -102,13 +102,15 @@ HtmlUnit дохнет на реальных страницах (JS)
 
 https://html.spec.whatwg.org/multipage/parsing.html#parsing
 
-- [x] предопределение кодировки страницы
-- [ ] покрыть грамотными тестами
-- [ ] Preprocessing the input stream
-- [ ] Parse state
+phase #1 
+- [x] Determining the character encoding
+
+- [x] Preprocessing the input stream
+- [x] Decode input stream
+- [x] Preprocessing the input stream
 - [ ] Tokenization
 - [ ] Tree construction
-- [ ]
+- [ ] Smart tests
 
 ### Фаза 4
 

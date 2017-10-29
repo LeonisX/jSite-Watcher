@@ -14,6 +14,7 @@ import lombok.ToString;
 public class DoctypeToken implements Token {
 
     private String name;
+    //TODO optionally originalName
     private String publicIdentifier;
     private String systemIdentifier;
     private boolean forceQuirks;

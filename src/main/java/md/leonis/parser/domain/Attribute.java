@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class Attribute {
 
     private String name;
+    //TODO optionally originalName
     private String value;
 
 }

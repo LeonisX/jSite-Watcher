@@ -19,6 +19,7 @@ import java.util.List;
 public class TagToken implements Token {
 
     private String name;
+    //TODO optionally originalName
     private boolean selfClosing;
     private List<Attribute> attributes;
 
