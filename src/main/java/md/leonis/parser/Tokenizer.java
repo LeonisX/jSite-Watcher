@@ -1,15 +1,21 @@
 package md.leonis.parser;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import md.leonis.parser.domain.Attribute;
 import md.leonis.parser.domain.PageEncoding;
 import md.leonis.parser.domain.State;
-import md.leonis.parser.domain.token.*;
-
-import java.util.ArrayList;
-import java.util.List;
+import md.leonis.parser.domain.token.CharacterToken;
+import md.leonis.parser.domain.token.CommentToken;
+import md.leonis.parser.domain.token.DoctypeToken;
+import md.leonis.parser.domain.token.EndOfFileToken;
+import md.leonis.parser.domain.token.EndTagToken;
+import md.leonis.parser.domain.token.StartTagToken;
+import md.leonis.parser.domain.token.TagToken;
+import md.leonis.parser.domain.token.Token;
 
 @Slf4j
 @Getter
@@ -29,6 +35,7 @@ class Tokenizer {
     private TagToken tagToken;
     private Attribute attribute;
     private CommentToken commentToken;
+    private DoctypeToken doctypeToken;
     private StringBuilder temporaryBuffer;
 
     Tokenizer(String htmlString) {
@@ -96,6 +103,15 @@ class Tokenizer {
                 case SELF_CLOSING_START_TAG:
                     inSelfClosingStartTag();
                     break;
+                case BOGUS_COMMENT:
+                    inBogusComment();
+                    break;
+                case MARKUP_DECLARATION_OPEN:
+                    inMarkupDeclarationOpen();
+                    break;
+                case DOCTYPE:
+                    inDoctype();
+                    break;
                 case CHARACTER_REFERENCE:
                     inCharacterReferenceState();
                     break;
@@ -134,7 +150,7 @@ class Tokenizer {
                 // This error occurs if the parser encounters a U+0000 NULL code point in the input stream
                 // in certain positions. In general, such code points are either completely ignored or,
                 // for security reasons, replaced with a U+FFFD REPLACEMENT CHARACTER.
-                //TODO optionally after refactor
+                //TODO optionally after refactor (also in all other places)
                 tokens.add(new CharacterToken((char) 0xFFFD));
                 //TODO pass to special class
                 //TODO where optionally process exceptions and show detailed logs
@@ -809,13 +825,106 @@ class Tokenizer {
         }
     }
 
+    //12.2.5.41 Bogus comment state
+    private void inBogusComment() {
+        // Consume the next input character:
+        // EOF: Emit the comment. Emit an end-of-file token.
+        if (position == length) {
+            tokens.add(commentToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Switch to the data state.
+                state = State.DATA;
+                // Emit the comment token.
+                tokens.add(commentToken);
+                position++;
+                break;
+            // U+0000 NULL
+            case 0x0000:
+                // This is an unexpected-null-character parse error.
+                log.error("unexpected-null-character");
+                // Append a U+FFFD REPLACEMENT CHARACTER character to the comment token's data.
+                commentToken.setData(commentToken.getData() + (char) 0xFFFD);
+                position++;
+                break;
+            default:
+                // Anything else: Append the current input character to the comment token's data.
+                commentToken.setData(commentToken.getData() + c);
+                break;
+        }
+    }
 
+    //12.2.5.42 Markup declaration open state
+    private void inMarkupDeclarationOpen() {
+        // If the next few characters are:
+        // Two U+002D HYPHEN-MINUS characters (-)
+        // Consume those two characters, create a comment token whose data is the empty string,
+        // and switch to the comment start state.
+        String string = substring(2);
+        if (string.equals("--")) {
+            position += 2;
+            commentToken = new CommentToken("");
+            state = State.COMMENT_START;
+            return;
+        }
+        // ASCII case-insensitive match for the word "DOCTYPE"
+        // Consume those characters and switch to the DOCTYPE state.
+        string = substring(7).toUpperCase();
+        if (string.equals("DOCTYPE")) {
+            position += 7;
+            state = State.DOCTYPE;
+            return;
+        }
+        // Case-sensitive match for the string "[CDATA[" (the five uppercase letters "CDATA" with a
+        // U+005B LEFT SQUARE BRACKET character before and after)
+        string = substring(7).toUpperCase();
+        if (string.equals("[CDATA[")) {
+            // Consume those characters.
+            position += 7;
+            // If there is an adjusted current node and it is not an element in the HTML namespace,
+            // then switch to the CDATA section state.
+            // TODO for now we parse only pure HTML, so, threat as comment
+            // Otherwise, this is a cdata-in-html-content parse error.
+            log.error("cdata-in-html-content");
+            // Create a comment token whose data is the "[CDATA[" string.
+            commentToken = new CommentToken("[CDATA[");
+            // Switch to the bogus comment state.
+            state = State.BOGUS_COMMENT;
+            return;
+        }
+        //Anything else: This is an incorrectly-opened-comment parse error.
+        log.error("incorrectly-opened-comment");
+        // Create a comment token whose data is the empty string.
+        commentToken = new CommentToken("");
+        // Switch to the bogus comment state (don't consume anything in the current state).
+        state = State.BOGUS_COMMENT;
+    }
 
+    //TODO in functions?
+    private String substring(int length) {
+        return substring(htmlString, position, length);
+    }
 
+    //TODO in functions?
+    private String substring(String source, int beginIndex, int length) {
+        if (source == null) {
+            return null;
+        }
+        if (beginIndex > source.length()) {
+            return "";
+        }
+        if (beginIndex + length > source.length()) {
+            return source.substring(beginIndex);
+        }
+        return source.substring(beginIndex, beginIndex + length);
+    }
 
-
-    //TODO 12.2.5.41 Bogus comment state
-    //TODO 12.2.5.42 Markup declaration open state
     //TODO 12.2.5.43 Comment start state
     //TODO 12.2.5.44 Comment start dash state
     //TODO 12.2.5.45 Comment state
@@ -827,7 +936,50 @@ class Tokenizer {
     //TODO 12.2.5.51 Comment end state
     //TODO 12.2.5.52 Comment end bang state
 
-    //TODO 12.2.5.53 DOCTYPE state
+    //12.2.5.53 DOCTYPE state
+    private void inDoctype() {
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // EOF: This is an eof-in-doctype parse error.
+            log.error("eof-in-doctype");
+            // Create a new DOCTYPE token.
+            // Set its force-quirks flag to on. Emit the token. Emit an end-of-file token.
+            doctypeToken = new DoctypeToken();
+            doctypeToken.setForceQuirks(true);
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                // Switch to the before DOCTYPE name state.
+                state = State.BEFORE_DOCTYPE_NAME;
+                position++;
+                break;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Reconsume in the before DOCTYPE name state.
+                state = State.BEFORE_DOCTYPE_NAME;
+                break;
+            default:
+                // Anything else: This is a missing-whitespace-before-doctype-name parse error.
+                log.error("missing-whitespace-before-doctype-name");
+                // Reconsume in the before DOCTYPE name state.
+                state = State.BEFORE_DOCTYPE_NAME;
+                break;
+        }
+    }
+
     //TODO 12.2.5.54 Before DOCTYPE name state
     //TODO 12.2.5.55 DOCTYPE name state
     //TODO 12.2.5.56 After DOCTYPE name state

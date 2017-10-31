@@ -46,9 +46,9 @@ public enum State {
     SELF_CLOSING_START_TAG,
     BOGUS_COMMENT,
     MARKUP_DECLARATION_OPEN,
+    COMMENT_START,
 
-    /*12.2.5.43 comment start state
-    12.2.5.44 comment start dash state
+    /*12.2.5.44 comment start dash state
     12.2.5.45 comment state
     12.2.5.46 comment less-than sign state
     12.2.5.47 comment less-than sign bang state
@@ -56,10 +56,12 @@ public enum State {
     12.2.5.49 comment less-than sign bang dash dash state
     12.2.5.50 comment end dash state
     12.2.5.51 comment end state
-    12.2.5.52 comment end bang state
-    12.2.5.53 DOCTYPE state
-    12.2.5.54 Before DOCTYPE name state
-    12.2.5.55 DOCTYPE name state
+    12.2.5.52 comment end bang state*/
+
+    DOCTYPE,
+    BEFORE_DOCTYPE_NAME,
+
+    /*12.2.5.55 DOCTYPE name state
     12.2.5.56 After DOCTYPE name state
     12.2.5.57 After DOCTYPE public keyword state
     12.2.5.58 Before DOCTYPE public identifier state
