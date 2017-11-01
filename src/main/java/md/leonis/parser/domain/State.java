@@ -60,22 +60,24 @@ public enum State {
 
     DOCTYPE,
     BEFORE_DOCTYPE_NAME,
+    DOCTYPE_NAME,
+    AFTER_DOCTYPE_NAME,
+    AFTER_DOCTYPE_PUBLIC_KEYWORD,
+    BEFORE_DOCTYPE_PUBLIC_IDENTIFIER,
+    DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED,
+    DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED,
+    AFTER_DOCTYPE_PUBLIC_IDENTIFIER,
+    BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS,
+    AFTER_DOCTYPE_SYSTEM_KEYWORD,
 
-    /*12.2.5.55 DOCTYPE name state
-    12.2.5.56 After DOCTYPE name state
-    12.2.5.57 After DOCTYPE public keyword state
-    12.2.5.58 Before DOCTYPE public identifier state
-    12.2.5.59 DOCTYPE public identifier (double-quoted) state
-    12.2.5.60 DOCTYPE public identifier (single-quoted) state
-    12.2.5.61 After DOCTYPE public identifier state
-    12.2.5.62 Between DOCTYPE public and system identifiers state
-    12.2.5.63 After DOCTYPE system keyword state
-    12.2.5.64 Before DOCTYPE system identifier state
-    12.2.5.65 DOCTYPE system identifier (double-quoted) state
-    12.2.5.66 DOCTYPE system identifier (single-quoted) state
-    12.2.5.67 After DOCTYPE system identifier state
-    12.2.5.68 Bogus DOCTYPE state
-    12.2.5.69 CDATA section state
+    //12.2.5.64 Before DOCTYPE system identifier state
+    DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED,
+    DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED,
+    //12.2.5.67 After DOCTYPE system identifier state
+
+    BOGUS_DOCTYPE,
+
+    /*12.2.5.69 CDATA section state
     12.2.5.70 CDATA section bracket state
     12.2.5.71 CDATA section end state*/
 
