@@ -136,7 +136,27 @@ class Tokenizer {
                 case AFTER_DOCTYPE_PUBLIC_IDENTIFIER:
                     inAfterDoctypePublicIdentifier();
                     break;
-
+                case BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS:
+                    inBetweenDoctypePublicAndSystemIdentifiers();
+                    break;
+                case AFTER_DOCTYPE_SYSTEM_KEYWORD:
+                    inAfterDoctypeSystemKeyword();
+                    break;
+                case BEFORE_DOCTYPE_SYSTEM_IDENTIFIER:
+                    inBeforeDoctypeSystemIdentifier();
+                    break;
+                case DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED:
+                    inDoctypeSystemIdentifierDoubleQuoted();
+                    break;
+                case DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED:
+                    inDoctypeSystemIdentifierSingleQuoted();
+                    break;
+                case AFTER_DOCTYPE_SYSTEM_IDENTIFIER:
+                    inAfterDoctypeSystemIdentifier();
+                    break;
+                case BOGUS_DOCTYPE:
+                    inBogusDoctype();
+                    break;
                 case CHARACTER_REFERENCE:
                     inCharacterReferenceState();
                     break;
@@ -150,6 +170,7 @@ class Tokenizer {
 
     //12.2.5.1 Data state
     private void inData() {
+        debug("inData");
         // Consume the next input character:
         // EOF: Emit an end-of-file token.
         if (position == length) {
@@ -199,6 +220,7 @@ class Tokenizer {
 
     //12.2.5.6 Tag open state
     private void inTagOpen() {
+        debug("inTagOpen");
         // Consume the next input character:
         // EOF: This is an eof-before-tag-name parse error.
         // Emit a U+003C LESS-THAN SIGN character token and an end-of-file token.
@@ -254,6 +276,7 @@ class Tokenizer {
 
     //12.2.5.7 End tag open state
     private void inEndTagOpen() {
+        debug("inEndTagOpen");
         // Consume the next input character:
         // EOF
         if (position == length) {
@@ -295,6 +318,7 @@ class Tokenizer {
 
     //12.2.5.8 Tag name state
     private void inTagName() {
+        debug("inTagName");
         // Consume the next input character:
         // EOF: This is an eof-in-tag parse error. Emit an end-of-file token.
         if (position == length) {
@@ -379,6 +403,7 @@ class Tokenizer {
 
     //12.2.5.32 Before attribute name state
     private void inBeforeAttributeName() {
+        debug("inBeforeAttributeName");
         // Consume the next input character:
         // Reconsume in the after attribute name state.
         if (position == length) {
@@ -431,6 +456,7 @@ class Tokenizer {
 
     //12.2.5.33 Attribute name state
     private void inAttributeName() {
+        debug("inAttributeName");
         // Consume the next input character:
         // Reconsume in the after attribute name state.
         if (position == length) {
@@ -498,6 +524,7 @@ class Tokenizer {
 
     //12.2.5.34 After attribute name state
     private void inAfterAttributeName() {
+        debug("inAfterAttributeName");
         // Consume the next input character:
         // This is an eof-in-tag parse error. Emit an end-of-file token.
         if (position == length) {
@@ -556,6 +583,7 @@ class Tokenizer {
 
     //12.2.5.35 Before attribute value state
     private void inBeforeAttributeValue() {
+        debug("inBeforeAttributeValue");
         // Consume the next input character:
         char c = htmlString.charAt(position);
         switch (c) {
@@ -601,6 +629,7 @@ class Tokenizer {
 
     //12.2.5.36 Attribute value (double-quoted) state
     private void inAttributeValueDoubleQuoted() {
+        debug("inAttributeValueDoubleQuoted");
         // Consume the next input character:
         // This is an eof-in-tag parse error. Emit an end-of-file token.
         if (position == length) {
@@ -645,6 +674,7 @@ class Tokenizer {
 
     //12.2.5.37 Attribute value (single-quoted) state
     private void inAttributeValueSingleQuoted() {
+        debug("inAttributeValueSingleQuoted");
         // Consume the next input character:
         // This is an eof-in-tag parse error. Emit an end-of-file token.
         if (position == length) {
@@ -689,6 +719,7 @@ class Tokenizer {
 
     //12.2.5.38 Attribute value (unquoted) state
     private void inAttributeValueUnquoted() {
+        debug("inAttributeValueUnquoted");
         // Consume the next input character:
         // This is an eof-in-tag parse error. Emit an end-of-file token.
         if (position == length) {
@@ -764,6 +795,7 @@ class Tokenizer {
 
     //12.2.5.39 After attribute value (quoted) state
     private void inAfterAttributeValue() {
+        debug("inAfterAttributeValue");
         // Consume the next input character:
         // This is an eof-in-tag parse error. Emit an end-of-file token.
         if (position == length) {
@@ -818,6 +850,7 @@ class Tokenizer {
 
     //12.2.5.40 Self-closing start tag state
     private void inSelfClosingStartTag() {
+        debug("inSelfClosingStartTag");
         // Consume the next input character:
         // This is an eof-in-tag parse error. Emit an end-of-file token.
         if (position == length) {
@@ -852,6 +885,7 @@ class Tokenizer {
 
     //12.2.5.41 Bogus comment state
     private void inBogusComment() {
+        debug("inBogusComment");
         // Consume the next input character:
         // EOF: Emit the comment. Emit an end-of-file token.
         if (position == length) {
@@ -887,6 +921,7 @@ class Tokenizer {
 
     //12.2.5.42 Markup declaration open state
     private void inMarkupDeclarationOpen() {
+        debug("inMarkupDeclarationOpen");
         // If the next few characters are:
         // Two U+002D HYPHEN-MINUS characters (-)
         // Consume those two characters, create a comment token whose data is the empty string,
@@ -931,25 +966,6 @@ class Tokenizer {
         state = State.BOGUS_COMMENT;
     }
 
-    //TODO in functions?
-    private String substring(int length) {
-        return substring(htmlString, position, length);
-    }
-
-    //TODO in functions?
-    private String substring(String source, int beginIndex, int length) {
-        if (source == null) {
-            return null;
-        }
-        if (beginIndex > source.length()) {
-            return "";
-        }
-        if (beginIndex + length > source.length()) {
-            return source.substring(beginIndex);
-        }
-        return source.substring(beginIndex, beginIndex + length);
-    }
-
     //TODO 12.2.5.43 Comment start state
     //TODO 12.2.5.44 Comment start dash state
     //TODO 12.2.5.45 Comment state
@@ -963,6 +979,7 @@ class Tokenizer {
 
     //12.2.5.53 DOCTYPE state
     private void inDoctype() {
+        debug("inDoctype");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1007,6 +1024,7 @@ class Tokenizer {
 
     //12.2.5.54 Before DOCTYPE name state
     private void inBeforeDoctypeName() {
+        debug("inBeforeDoctypeName");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1071,12 +1089,14 @@ class Tokenizer {
                     doctypeToken.setName("" + Character.toLowerCase(c));
                     // Switch to the DOCTYPE name state.
                     state = State.DOCTYPE_NAME;
+                    position++;
                 } else {
                     // Anything else: Create a new DOCTYPE token.
                     doctypeToken = new DoctypeToken();
                     // Set the token's name to the current input character. Switch to the DOCTYPE name state.
                     doctypeToken.setName("" + c);
                     state = State.DOCTYPE_NAME;
+                    position++;
                 }
                 break;
         }
@@ -1084,6 +1104,7 @@ class Tokenizer {
 
     //12.2.5.55 DOCTYPE name state
     private void inDoctypeName() {
+        debug("inDoctypeName");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1130,20 +1151,18 @@ class Tokenizer {
             default:
                 // ASCII upper alpha
                 if (Constants.ASCII_LOWER_ALPHA.contains(c)) {
-                    // Create a new DOCTYPE token.
-                    doctypeToken = new DoctypeToken();
-                    // Set the token's name to the lowercase version of the current input character
-                    // (add 0x0020 to the character's code point).
+                    // Append the lowercase version of the current input character
+                    // (add 0x0020 to the character's code point) to the current DOCTYPE token's name.
                     //TODO preserve original case too
-                    doctypeToken.setName("" + Character.toLowerCase(c));
+                    doctypeToken.setName(doctypeToken.getName() + Character.toLowerCase(c));
                     // Switch to the DOCTYPE name state.
                     state = State.DOCTYPE_NAME;
+                    position++;
                 } else {
-                    // Anything else: Create a new DOCTYPE token.
-                    doctypeToken = new DoctypeToken();
-                    // Set the token's name to the current input character. Switch to the DOCTYPE name state.
-                    doctypeToken.setName("" + c);
-                    state = State.DOCTYPE_NAME;
+                    // Anything else:
+                    // Append the current input character to the current DOCTYPE token's name.
+                    doctypeToken.setName(doctypeToken.getName() + c);
+                    position++;
                 }
                 break;
         }
@@ -1151,6 +1170,7 @@ class Tokenizer {
 
     //12.2.5.56 After DOCTYPE name state
     private void inAfterDoctypeName() {
+        debug("inAfterDoctypeName");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1215,6 +1235,7 @@ class Tokenizer {
 
     //12.2.5.57 After DOCTYPE public keyword state
     private void inAfterDoctypePublicKeyword() {
+        debug("inAfterDoctypePublicKeyword");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1285,6 +1306,7 @@ class Tokenizer {
 
     //12.2.5.58 Before DOCTYPE public identifier state
     private void inBeforeDoctypePublicIdentifier() {
+        debug("inBeforeDoctypePublicIdentifier");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1350,6 +1372,7 @@ class Tokenizer {
 
     //12.2.5.59 DOCTYPE public identifier (double-quoted) state
     private void inDoctypePublicIdentifierDoubleQuoted() {
+        debug("inDoctypePublicIdentifierDoubleQuoted");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1398,6 +1421,7 @@ class Tokenizer {
 
     //12.2.5.60 DOCTYPE public identifier (single-quoted) state
     private void inDoctypePublicIdentifierSingleQuoted() {
+        debug("inDoctypePublicIdentifierSingleQuoted");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1446,6 +1470,7 @@ class Tokenizer {
 
     //12.2.5.61 After DOCTYPE public identifier state
     private void inAfterDoctypePublicIdentifier() {
+        debug("inAfterDoctypePublicIdentifier");
         // Consume the next input character:
         // EOF:
         if (position == length) {
@@ -1479,7 +1504,7 @@ class Tokenizer {
                 // Set the DOCTYPE token's system identifier to the empty string (not missing),
                 doctypeToken.setPublicIdentifier("");
                 // then switch to the DOCTYPE system identifier (double-quoted) state.
-                state = State.DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+                state = State.DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED;
                 position++;
                 return;
             // U+0027 APOSTROPHE (')
@@ -1489,7 +1514,7 @@ class Tokenizer {
                 // Set the DOCTYPE token's public identifier to the empty string (not missing),
                 doctypeToken.setPublicIdentifier("");
                 // then switch to the DOCTYPE system identifier (single-quoted) state.
-                state = State.DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+                state = State.DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED;
                 position++;
                 return;
             // U+003E GREATER-THAN SIGN (>)
@@ -1510,13 +1535,382 @@ class Tokenizer {
         }
     }
 
-    //TODO 12.2.5.62 Between DOCTYPE public and system identifiers state
-    //TODO 12.2.5.63 After DOCTYPE system keyword state
-    //TODO 12.2.5.64 Before DOCTYPE system identifier state
-    //TODO 12.2.5.65 DOCTYPE system identifier (double-quoted) state
-    //TODO 12.2.5.66 DOCTYPE system identifier (single-quoted) state
-    //TODO 12.2.5.67 After DOCTYPE system identifier state
-    //TODO 12.2.5.68 Bogus DOCTYPE state
+    //12.2.5.62 Between DOCTYPE public and system identifiers state
+    private void inBetweenDoctypePublicAndSystemIdentifiers() {
+        debug("inBetweenDoctypePublicAndSystemIdentifiers");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // EOF: This is an eof-in-doctype parse error.
+            log.error("eof-in-doctype");
+            // Set the DOCTYPE token's force-quirks flag to on. Emit that DOCTYPE token. Emit an end-of-file token.
+            doctypeToken.setForceQuirks(true);
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                // Ignore the character.
+                position++;
+                break;
+            // U+0022 QUOTATION MARK (")
+            case '"':
+                // Set the DOCTYPE token's system identifier to the empty string (not missing),
+                doctypeToken.setSystemIdentifier("");
+                // then switch to the DOCTYPE system identifier (double-quoted) state.
+                state = State.DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+                position++;
+                return;
+            // U+0027 APOSTROPHE (')
+            case '\'':
+                // Set the DOCTYPE token's system identifier to the empty string (not missing),
+                doctypeToken.setSystemIdentifier("");
+                // then switch to the DOCTYPE system identifier (single-quoted) state.
+                state = State.DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+                position++;
+                return;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Switch to the data state.
+                state = State.DATA;
+                // Emit the current DOCTYPE token.
+                tokens.add(doctypeToken);
+                position++;
+                return;
+            default:
+                // Anything else: This is a missing-quote-before-doctype-system-identifier parse error.
+                log.error("missing-quote-before-doctype-system-identifier");
+                // Set the DOCTYPE token's force-quirks flag to on.
+                doctypeToken.setForceQuirks(true);
+                // Reconsume in the bogus DOCTYPE state.
+                state = State.BOGUS_DOCTYPE;
+                break;
+        }
+    }
+
+    //12.2.5.63 After DOCTYPE system keyword state
+    private void inAfterDoctypeSystemKeyword() {
+        debug("inAfterDoctypeSystemKeyword");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // EOF: This is an eof-in-doctype parse error.
+            log.error("eof-in-doctype");
+            // Set the DOCTYPE token's force-quirks flag to on. Emit that DOCTYPE token. Emit an end-of-file token.
+            doctypeToken.setForceQuirks(true);
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                // Switch to the before DOCTYPE system identifier state.
+                state = State.BEFORE_DOCTYPE_SYSTEM_IDENTIFIER;
+                position++;
+                break;
+            // U+0022 QUOTATION MARK (")
+            case '"':
+                // This is a missing-whitespace-after-doctype-public-keyword parse error.
+                log.error("missing-whitespace-after-doctype-public-keyword");
+                // Set the DOCTYPE token's public identifier to the empty string (not missing),
+                doctypeToken.setSystemIdentifier("");
+                // then switch to the DOCTYPE system identifier (double-quoted) state.
+                state = State.DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+                position++;
+                return;
+            // U+0027 APOSTROPHE (')
+            case '\'':
+                // This is a missing-whitespace-after-doctype-public-keyword parse error.
+                log.error("missing-whitespace-after-doctype-public-keyword");
+                // Set the DOCTYPE token's system identifier to the empty string (not missing),
+                doctypeToken.setSystemIdentifier("");
+                // then switch to the DOCTYPE system identifier (single-quoted) state.
+                state = State.DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+                position++;
+                return;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // This is a missing-doctype-public-identifier parse error.
+                log.error("missing-doctype-public-identifier");
+                // Set the DOCTYPE token's force-quirks flag to on. Switch to the data state. Emit that DOCTYPE token.
+                doctypeToken.setForceQuirks(true);
+                state = State.DATA;
+                // Emit the current DOCTYPE token.
+                tokens.add(doctypeToken);
+                position++;
+                return;
+            default:
+                // Anything else: This is a missing-quote-before-doctype-system-identifier parse error.
+                log.error("missing-quote-before-doctype-system-identifier");
+                // Set the DOCTYPE token's force-quirks flag to on.
+                doctypeToken.setForceQuirks(true);
+                // Reconsume in the bogus DOCTYPE state.
+                state = State.BOGUS_DOCTYPE;
+                break;
+        }
+    }
+
+    //12.2.5.64 Before DOCTYPE system identifier state
+    private void inBeforeDoctypeSystemIdentifier() {
+        debug("inBeforeDoctypeSystemIdentifier");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // EOF: This is an eof-in-doctype parse error.
+            log.error("eof-in-doctype");
+            // Set the DOCTYPE token's force-quirks flag to on. Emit that DOCTYPE token. Emit an end-of-file token.
+            doctypeToken.setForceQuirks(true);
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                // Ignore the character.
+                position++;
+                break;
+            // U+0022 QUOTATION MARK (")
+            case '"':
+                // Set the DOCTYPE token's system identifier to the empty string (not missing),
+                doctypeToken.setSystemIdentifier("");
+                // then switch to the DOCTYPE system identifier (double-quoted) state.
+                state = State.DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+                position++;
+                return;
+            // U+0027 APOSTROPHE (')
+            case '\'':
+                // Set the DOCTYPE token's system identifier to the empty string (not missing),
+                doctypeToken.setSystemIdentifier("");
+                // then switch to the DOCTYPE system identifier (single-quoted) state.
+                state = State.DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+                position++;
+                return;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // This is a missing-doctype-system-identifier parse error.
+                log.error("missing-doctype-system-identifier");
+                // Set the DOCTYPE token's force-quirks flag to on. Switch to the data state. Emit that DOCTYPE token.
+                doctypeToken.setForceQuirks(true);
+                state = State.DATA;
+                // Emit the current DOCTYPE token.
+                tokens.add(doctypeToken);
+                position++;
+                return;
+            default:
+                // Anything else: This is a missing-quote-before-doctype-system-identifier parse error.
+                log.error("missing-quote-before-doctype-system-identifier");
+                // Set the DOCTYPE token's force-quirks flag to on.
+                doctypeToken.setForceQuirks(true);
+                // Reconsume in the bogus DOCTYPE state.
+                state = State.BOGUS_DOCTYPE;
+                break;
+        }
+    }
+
+    //12.2.5.65 DOCTYPE system identifier (double-quoted) state
+    private void inDoctypeSystemIdentifierDoubleQuoted() {
+        debug("inDoctypeSystemIdentifierDoubleQuoted");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // EOF: This is an eof-in-doctype parse error.
+            log.error("eof-in-doctype");
+            // Set the DOCTYPE token's force-quirks flag to on. Emit that DOCTYPE token. Emit an end-of-file token.
+            doctypeToken.setForceQuirks(true);
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0022 QUOTATION MARK (")
+            case '"':
+                // Switch to the after DOCTYPE system identifier state.
+                state = State.AFTER_DOCTYPE_SYSTEM_IDENTIFIER;
+                position++;
+                return;
+            // U+0000 NULL
+            case 0x0000:
+                // This is an unexpected-null-character parse error.
+                log.error("unexpected-null-character");
+                // Append a U+FFFD REPLACEMENT CHARACTER character to the current DOCTYPE token's system identifier.
+                doctypeToken.setSystemIdentifier(doctypeToken.getSystemIdentifier() + (char) 0xFFFD);
+                position++;
+                return;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // This is an abrupt-doctype-system-identifier parse error.
+                log.error("abrupt-doctype-system-identifier");
+                // Set the DOCTYPE token's force-quirks flag to on. Switch to the data state. Emit that DOCTYPE token.
+                doctypeToken.setForceQuirks(true);
+                state = State.DATA;
+                tokens.add(doctypeToken);
+                position++;
+                return;
+            default:
+                // Anything else: Append the current input character to the current DOCTYPE token's system identifier.
+                doctypeToken.setSystemIdentifier(doctypeToken.getSystemIdentifier() + c);
+                position++;
+                break;
+        }
+    }
+
+    //12.2.5.66 DOCTYPE system identifier (single-quoted) state
+    private void inDoctypeSystemIdentifierSingleQuoted() {
+        debug("inDoctypeSystemIdentifierSingleQuoted");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // EOF: This is an eof-in-doctype parse error.
+            log.error("eof-in-doctype");
+            // Set the DOCTYPE token's force-quirks flag to on. Emit that DOCTYPE token. Emit an end-of-file token.
+            doctypeToken.setForceQuirks(true);
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0027 APOSTROPHE (')
+            case '\'':
+                // Switch to the after DOCTYPE public identifier state.
+                state = State.AFTER_DOCTYPE_SYSTEM_IDENTIFIER;
+                position++;
+                return;
+            // U+0000 NULL
+            case 0x0000:
+                // This is an unexpected-null-character parse error.
+                log.error("unexpected-null-character");
+                // Append a U+FFFD REPLACEMENT CHARACTER character to the current DOCTYPE token's system identifier.
+                doctypeToken.setSystemIdentifier(doctypeToken.getSystemIdentifier() + (char) 0xFFFD);
+                position++;
+                return;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // This is an abrupt-doctype-system-identifier parse error.
+                log.error("abrupt-doctype-system-identifier");
+                // Set the DOCTYPE token's force-quirks flag to on. Switch to the data state. Emit that DOCTYPE token.
+                doctypeToken.setForceQuirks(true);
+                state = State.DATA;
+                tokens.add(doctypeToken);
+                position++;
+                return;
+            default:
+                // Anything else: Append the current input character to the current DOCTYPE token's system identifier.
+                doctypeToken.setSystemIdentifier(doctypeToken.getSystemIdentifier() + c);
+                position++;
+                break;
+        }
+    }
+
+    //12.2.5.67 After DOCTYPE system identifier state
+    private void inAfterDoctypeSystemIdentifier() {
+        debug("inAfterDoctypeSystemIdentifier");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // EOF: This is an eof-in-doctype parse error.
+            log.error("eof-in-doctype");
+            // Set the DOCTYPE token's force-quirks flag to on. Emit that DOCTYPE token. Emit an end-of-file token.
+            doctypeToken.setForceQuirks(true);
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                // Ignore the character.
+                position++;
+                break;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Switch to the data state. Emit the current DOCTYPE token.
+                state = State.DATA;
+                tokens.add(doctypeToken);
+                position++;
+                return;
+            default:
+                // Anything else: This is a unexpected-character-after-doctype-system-identifier parse error.
+                log.error("unexpected-character-after-doctype-system-identifier");
+                // Reconsume in the bogus DOCTYPE state. (This does not set the DOCTYPE token's force-quirks flag to on.)
+                state = State.BOGUS_DOCTYPE;
+                break;
+        }
+    }
+
+    //12.2.5.68 Bogus DOCTYPE state
+    private void inBogusDoctype() {
+        debug("inBogusDoctype");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // Emit that DOCTYPE token. Emit an end-of-file token.
+            tokens.add(doctypeToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0000 NULL
+            case 0x0000:
+                // This is an unexpected-null-character parse error.
+                log.error("unexpected-null-character");
+                // Ignore the character.
+                position++;
+                return;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Switch to the data state. Emit that DOCTYPE token.
+                state = State.DATA;
+                tokens.add(doctypeToken);
+                position++;
+                return;
+            default:
+                // Anything else: Ignore the character.
+                position++;
+                break;
+        }
+    }
 
     //TODO 12.2.5.69 CDATA section state
     //TODO 12.2.5.70 CDATA section bracket state
@@ -1524,6 +1918,7 @@ class Tokenizer {
 
     //12.2.5.72 Character reference state
     private void inCharacterReferenceState() {
+        debug("inCharacterReferenceState");
         // Set the temporary buffer to the empty string.
         // Append a U+0026 AMPERSAND (&) character to the temporary buffer.
         temporaryBuffer = new StringBuilder("&");
@@ -1583,5 +1978,31 @@ class Tokenizer {
                 throw new RuntimeException("Unknown return state");
         }
         temporaryBuffer = null;
+    }
+
+
+    private void debug(String methodName) {
+        String s = doctypeToken == null ? "" : doctypeToken.getName();
+        log.info(String.format("{ %s } %s %s", substring(16), methodName, s));
+    }
+
+
+    //TODO in functions?
+    private String substring(int length) {
+        return substring(htmlString, position, length);
+    }
+
+    //TODO in functions?
+    private String substring(String source, int beginIndex, int length) {
+        if (source == null) {
+            return null;
+        }
+        if (beginIndex > source.length()) {
+            return "";
+        }
+        if (beginIndex + length > source.length()) {
+            return source.substring(beginIndex);
+        }
+        return source.substring(beginIndex, beginIndex + length);
     }
 }

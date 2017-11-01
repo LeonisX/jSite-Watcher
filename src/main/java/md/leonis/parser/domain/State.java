@@ -47,17 +47,15 @@ public enum State {
     BOGUS_COMMENT,
     MARKUP_DECLARATION_OPEN,
     COMMENT_START,
-
-    /*12.2.5.44 comment start dash state
-    12.2.5.45 comment state
-    12.2.5.46 comment less-than sign state
-    12.2.5.47 comment less-than sign bang state
-    12.2.5.48 comment less-than sign bang dash state
-    12.2.5.49 comment less-than sign bang dash dash state
-    12.2.5.50 comment end dash state
-    12.2.5.51 comment end state
-    12.2.5.52 comment end bang state*/
-
+    COMMENT_START_DASH,
+    COMMENT,
+    COMMENT_LESS_THAN_SIGN,
+    COMMENT_LESS_THAN_SIGN_BANG,
+    COMMENT_LESS_THAN_SIGN_BANG_DASH,
+    COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH,
+    COMMENT_END_DASH,
+    COMMENT_END,
+    COMMENT_END_BANG,
     DOCTYPE,
     BEFORE_DOCTYPE_NAME,
     DOCTYPE_NAME,
@@ -69,18 +67,14 @@ public enum State {
     AFTER_DOCTYPE_PUBLIC_IDENTIFIER,
     BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS,
     AFTER_DOCTYPE_SYSTEM_KEYWORD,
-
-    //12.2.5.64 Before DOCTYPE system identifier state
+    BEFORE_DOCTYPE_SYSTEM_IDENTIFIER,
     DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED,
     DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED,
-    //12.2.5.67 After DOCTYPE system identifier state
-
+    AFTER_DOCTYPE_SYSTEM_IDENTIFIER,
     BOGUS_DOCTYPE,
-
-    /*12.2.5.69 CDATA section state
-    12.2.5.70 CDATA section bracket state
-    12.2.5.71 CDATA section end state*/
-
+    CDATA_SECTION,
+    CDATA_SECTION_BRACKET,
+    CDATA_SECTION_END,
     CHARACTER_REFERENCE,
     NAMED_CHARACTER_REFERENCE,
     AMBIGUOUS_AMPERSAND,
