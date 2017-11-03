@@ -33,6 +33,8 @@ class Tokenizer {
     private State returnState;
     private List<Token> tokens;
     private TagToken tagToken;
+    private StartTagToken startTagToken;
+    private EndTagToken endTagToken;
     private Attribute attribute;
     private CommentToken commentToken;
     private DoctypeToken doctypeToken;
@@ -67,6 +69,18 @@ class Tokenizer {
                 case DATA:
                     inData();
                     break;
+                case RCDATA:
+                    inRcData();
+                    break;
+                case RAWTEXT:
+                    inRawText();
+                    break;
+                case SCRIPT_DATA:
+                    inScriptData();
+                    break;
+                case PLAINTEXT:
+                    inPlainText();
+                    break;
                 case TAG_OPEN:
                     inTagOpen();
                     break;
@@ -76,6 +90,20 @@ class Tokenizer {
                 case TAG_NAME:
                     inTagName();
                     break;
+                case RCDATA_LESS_THAN_SIGN:
+                    inRcDataLessThanSign();
+                    break;
+                case RCDATA_END_TAG_OPEN:
+                    inRcDataEndTagOpen();
+                    break;
+                case RCDATA_END_TAG_NAME:
+                    inRcDataEndTagName();
+                    break;
+
+
+
+
+
                 case BEFORE_ATTRIBUTE_NAME:
                     inBeforeAttributeName();
                     break;
@@ -108,6 +136,36 @@ class Tokenizer {
                     break;
                 case MARKUP_DECLARATION_OPEN:
                     inMarkupDeclarationOpen();
+                    break;
+                case COMMENT_START:
+                    inCommentStart();
+                    break;
+                case COMMENT_START_DASH:
+                    inCommentStartDash();
+                    break;
+                case COMMENT:
+                    inComment();
+                    break;
+                case COMMENT_LESS_THAN_SIGN:
+                    inCommentLessThanSign();
+                    break;
+                case COMMENT_LESS_THAN_SIGN_BANG:
+                    inCommentLessThanSignBang();
+                    break;
+                case COMMENT_LESS_THAN_SIGN_BANG_DASH:
+                    inCommentLessThanSignBangDash();
+                    break;
+                case COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH:
+                    inCommentLessThanSignBangDashDash();
+                    break;
+                case COMMENT_END_DASH:
+                    inCommentEndDash();
+                    break;
+                case COMMENT_END:
+                    inCommentEnd();
+                    break;
+                case COMMENT_END_BANG:
+                    inCommentEndBang();
                     break;
                 case DOCTYPE:
                     inDoctype();
@@ -178,7 +236,8 @@ class Tokenizer {
             position++;
             return;
         }
-        switch (htmlString.charAt(position)) {
+        char c = htmlString.charAt(position);
+        switch (c) {
             // U+0026 AMPERSAND (&): Set the return state to the data state.
             // Switch to the character reference state.
             case '&':
@@ -205,18 +264,143 @@ class Tokenizer {
                 break;
             default:
                 // Anything else: Emit the current input character as a character token.
-                tokens.add(new CharacterToken(htmlString.charAt(position)));
+                tokens.add(new CharacterToken(c));
                 position++;
         }
     }
 
-    //TODO 12.2.5.2 RCDATA state
+    //12.2.5.2 RCDATA state
+    private void inRcData() {
+        debug("inRcData");
+        // Consume the next input character:
+        // EOF: Emit an end-of-file token.
+        if (position == length) {
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0026 AMPERSAND (&)
+            case '&':
+                // Set the return state to the RCDATA state. Switch to the character reference state.
+                returnState = State.RCDATA;
+                state = State.CHARACTER_REFERENCE;
+                position++;
+                break;
+            // U+003C LESS-THAN SIGN (<)
+            case '<':
+                // Switch to the RCDATA less-than sign state.
+                state = State.RCDATA_LESS_THAN_SIGN;
+                position++;
+                break;
+            // U+0000 NULL
+            case 0x0000:
+                // U+0000 NULL: This is an unexpected-null-character parse error.
+                // Emit the current input character as a character token.
+                tokens.add(new CharacterToken((char) 0xFFFD));
+                log.error("unexpected-null-character");
+                position++;
+                break;
+            default:
+                // Anything else: Emit the current input character as a character token.
+                tokens.add(new CharacterToken(c));
+                position++;
+        }
+    }
 
-    //TODO 12.2.5.3 RAWTEXT state
+    //12.2.5.3 RAWTEXT state
+    private void inRawText() {
+        debug("inRawText");
+        // Consume the next input character:
+        // EOF: Emit an end-of-file token.
+        if (position == length) {
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+003C LESS-THAN SIGN (<)
+            case '<':
+                // Switch to the RAWTEXT less-than sign state.
+                state = State.RAWTEXT_LESS_THAN_SIGN;
+                position++;
+                break;
+            // U+0000 NULL
+            case 0x0000:
+                // U+0000 NULL: This is an unexpected-null-character parse error.
+                // Emit the current input character as a character token.
+                tokens.add(new CharacterToken((char) 0xFFFD));
+                log.error("unexpected-null-character");
+                position++;
+                break;
+            default:
+                // Anything else: Emit the current input character as a character token.
+                tokens.add(new CharacterToken(c));
+                position++;
+        }
+    }
 
-    //TODO 12.2.5.4 Script data state
+    //12.2.5.4 Script data state
+    private void inScriptData() {
+        debug("inScriptData");
+        // Consume the next input character:
+        // EOF: Emit an end-of-file token.
+        if (position == length) {
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+003C LESS-THAN SIGN (<)
+            case '<':
+                // Switch to the script data less-than sign state.
+                state = State.SCRIPT_LESS_THAN_SIGN;
+                position++;
+                break;
+            // U+0000 NULL
+            case 0x0000:
+                // U+0000 NULL: This is an unexpected-null-character parse error.
+                // Emit the current input character as a character token.
+                tokens.add(new CharacterToken((char) 0xFFFD));
+                log.error("unexpected-null-character");
+                position++;
+                break;
+            default:
+                // Anything else: Emit the current input character as a character token.
+                tokens.add(new CharacterToken(c));
+                position++;
+        }
+    }
 
-    //TODO 12.2.5.5 PLAINTEXT state
+    //12.2.5.5 PLAINTEXT state
+    private void inPlainText() {
+        debug("inPlainText");
+        // Consume the next input character:
+        // EOF: Emit an end-of-file token.
+        if (position == length) {
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0000 NULL
+            case 0x0000:
+                // U+0000 NULL: This is an unexpected-null-character parse error.
+                // Emit the current input character as a character token.
+                tokens.add(new CharacterToken((char) 0xFFFD));
+                log.error("unexpected-null-character");
+                position++;
+                break;
+            default:
+                // Anything else: Emit the current input character as a character token.
+                tokens.add(new CharacterToken(c));
+                position++;
+        }
+    }
 
     //12.2.5.6 Tag open state
     private void inTagOpen() {
@@ -257,7 +441,8 @@ class Tokenizer {
                 // Reconsume in the tag name state.
                 if (Constants.ASCII_ALPHA.contains(htmlString.charAt(position))) {
                     state = State.TAG_NAME;
-                    tagToken = new StartTagToken("");
+                    startTagToken = new StartTagToken("");
+                    tagToken = startTagToken;
                 } else {
                     // Anything else: This is an invalid-first-character-of-tag-name parse error.
                     // This error occurs if the parser encounters a code point that is not an ASCII alpha
@@ -302,7 +487,8 @@ class Tokenizer {
             default:
                 // ASCII alpha: Create a new end tag token, set its tag name to the empty string.
                 if (Constants.ASCII_ALPHA.contains(c)) {
-                    tagToken = new EndTagToken("");
+                    endTagToken = new EndTagToken("");
+                    tagToken = endTagToken;
                     // Reconsume in the tag name state.
                     state = State.TAG_NAME;
                 } else {
@@ -377,9 +563,160 @@ class Tokenizer {
         }
     }
 
-    //TODO 12.2.5.9 RCDATA less-than sign state
-    //TODO 12.2.5.10 RCDATA end tag open state
-    //TODO 12.2.5.11 RCDATA end tag name state
+    //12.2.5.9 RCDATA less-than sign state
+    private void inRcDataLessThanSign() {
+        debug("inRcDataLessThanSign");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002F SOLIDUS (/)
+            case '/':
+                //Set the temporary buffer to the empty string. Switch to the RCDATA end tag open state.
+                temporaryBuffer = new StringBuilder("");
+                state = State.RCDATA_END_TAG_OPEN;
+                position++;
+                break;
+            default:
+                // Anything else: Emit a U+003C LESS-THAN SIGN character token.
+                tokens.add(new CharacterToken((char) 0x003C));
+                // Reconsume in the RCDATA state.
+                state = State.RCDATA;
+        }
+    }
+
+    //12.2.5.10 RCDATA end tag open state
+    private void inRcDataEndTagOpen() {
+        debug("inRcDataEndTagOpen");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        // ASCII alpha
+        if (Constants.ASCII_ALPHA.contains(c)) {
+            // Create a new end tag token, set its tag name to the empty string.
+            endTagToken = new EndTagToken("");
+            tagToken = endTagToken;
+            // Reconsume in the RCDATA end tag name state.
+            state = State.RCDATA_END_TAG_NAME;
+        } else {
+            // Emit a U+003C LESS-THAN SIGN character token and a U+002F SOLIDUS character token
+            tokens.add(new CharacterToken((char) 0x003C));
+            tokens.add(new CharacterToken((char) 0x002F));
+            // Reconsume in the RCDATA state.
+            state = State.RCDATA;
+        }
+    }
+
+
+    //TODO optimize "Otherwise, treat it as per the "anything else" entry below."
+    //12.2.5.11 RCDATA end tag name state
+    private void inRcDataEndTagName() {
+        debug("inRcDataEndTagName");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                // If the current end tag token is an appropriate end tag token,
+                if (endTagToken.getName().equals(startTagToken.getName())) {
+                    // then switch to the before attribute name state.
+                    state = State.BEFORE_ATTRIBUTE_NAME;
+                    position++;
+                } else {
+                    // Otherwise, treat it as per the "anything else" entry below.
+                    // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
+                    // and a character token for each of the characters in the temporary buffer
+                    // (in the order they were added to the buffer).
+                    tokens.add(new CharacterToken((char) 0x003C));
+                    tokens.add(new CharacterToken((char) 0x002F));
+                    for (char ch: temporaryBuffer.toString().toCharArray()) {
+                        tokens.add(new CharacterToken(ch));
+                    }
+                    // Reconsume in the RCDATA state.
+                    state = State.BEFORE_ATTRIBUTE_NAME;
+                }
+                break;
+            // U+002F SOLIDUS (/)
+            case '/':
+                //If the current end tag token is an appropriate end tag token,
+                if (endTagToken.getName().equals(startTagToken.getName())) {
+                    // then switch to the self-closing start tag state.
+                    state = State.SELF_CLOSING_START_TAG;
+                    position++;
+                } else {
+                    // Otherwise, treat it as per the "anything else" entry below.
+                    // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
+                    // and a character token for each of the characters in the temporary buffer
+                    // (in the order they were added to the buffer).
+                    tokens.add(new CharacterToken((char) 0x003C));
+                    tokens.add(new CharacterToken((char) 0x002F));
+                    for (char ch: temporaryBuffer.toString().toCharArray()) {
+                        tokens.add(new CharacterToken(ch));
+                    }
+                    // Reconsume in the RCDATA state.
+                    state = State.BEFORE_ATTRIBUTE_NAME;
+                }
+                break;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                //If the current end tag token is an appropriate end tag token,
+                if (endTagToken.getName().equals(startTagToken.getName())) {
+                    // then switch to the data state and emit the current tag token
+                    state = State.DATA;
+                    tokens.add(tagToken);
+                    position++;
+                } else {
+                    // Otherwise, treat it as per the "anything else" entry below.
+                    // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
+                    // and a character token for each of the characters in the temporary buffer
+                    // (in the order they were added to the buffer).
+                    tokens.add(new CharacterToken((char) 0x003C));
+                    tokens.add(new CharacterToken((char) 0x002F));
+                    for (char ch: temporaryBuffer.toString().toCharArray()) {
+                        tokens.add(new CharacterToken(ch));
+                    }
+                    // Reconsume in the RCDATA state.
+                    state = State.BEFORE_ATTRIBUTE_NAME;
+                }
+                break;
+            default:
+                // ASCII upper alpha
+                if (Constants.ASCII_UPPER_ALPHA.contains(c)) {
+                    // Append the lowercase version of the current input character
+                    // (add 0x0020 to the character's code point) to the current tag token's tag name.
+                    tagToken.setName(tagToken.getName() + Character.toLowerCase(c));
+                    // Append the current input character to the temporary buffer.
+                    temporaryBuffer.append(c);
+                    position++;
+                } else
+                    // ASCII lower alpha
+                    if (Constants.ASCII_LOWER_ALPHA.contains(c)) {
+                        // Append the current input character to the current tag token's tag name.
+                        tagToken.setName(tagToken.getName() + c);
+                        // Append the current input character to the temporary buffer.
+                        temporaryBuffer.append(c);
+                        position++;
+                    }
+                    // Anything else
+                    else {
+                        // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
+                        // and a character token for each of the characters in the temporary buffer
+                        // (in the order they were added to the buffer).
+                        tokens.add(new CharacterToken((char) 0x003C));
+                        tokens.add(new CharacterToken((char) 0x002F));
+                        for (char ch : temporaryBuffer.toString().toCharArray()) {
+                            tokens.add(new CharacterToken(ch));
+                        }
+                        // Reconsume in the RCDATA state.
+                        state = State.BEFORE_ATTRIBUTE_NAME;
+                    }
+        }
+    }
+
     //TODO 12.2.5.12 RAWTEXT less-than sign state
     //TODO 12.2.5.13 RAWTEXT end tag open state
     //TODO 12.2.5.14 RAWTEXT end tag name state
@@ -966,16 +1303,325 @@ class Tokenizer {
         state = State.BOGUS_COMMENT;
     }
 
-    //TODO 12.2.5.43 Comment start state
-    //TODO 12.2.5.44 Comment start dash state
-    //TODO 12.2.5.45 Comment state
-    //TODO 12.2.5.46 Comment less-than sign state
-    //TODO 12.2.5.47 Comment less-than sign bang state
-    //TODO 12.2.5.48 Comment less-than sign bang dash state
-    //TODO 12.2.5.49 Comment less-than sign bang dash dash state
-    //TODO 12.2.5.50 Comment end dash state
-    //TODO 12.2.5.51 Comment end state
-    //TODO 12.2.5.52 Comment end bang state
+    //12.2.5.43 Comment start state
+    private void inCommentStart() {
+        debug("inCommentStart");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Switch to the comment start dash state.
+                state = State.COMMENT_START_DASH;
+                position++;
+                break;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // This is an abrupt-closing-of-empty-comment parse error.
+                log.error("abrupt-closing-of-empty-comment");
+                // Switch to the data state. Emit the comment token.
+                state = State.DATA;
+                tokens.add(commentToken);
+                position++;
+                break;
+            default:
+                // Reconsume in the comment state.
+                state = State.COMMENT;
+                break;
+        }
+    }
+
+    //12.2.5.44 Comment start dash state
+    private void inCommentStartDash() {
+        debug("inCommentStartDash");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // This is an eof-in-comment parse error.
+            log.error("eof-in-comment");
+            // Emit the comment token. Emit an end-of-file token.
+            tokens.add(commentToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Switch to the comment end state
+                state = State.COMMENT_END;
+                position++;
+                break;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // This is an abrupt-closing-of-empty-comment parse error.
+                log.error("abrupt-closing-of-empty-comment");
+                // Switch to the data state. Emit the comment token.
+                state = State.DATA;
+                tokens.add(commentToken);
+                position++;
+                break;
+            default:
+                // Append a U+002D HYPHEN-MINUS character (-) to the comment token's data.
+                // Reconsume in the comment state.
+                commentToken.setData(commentToken.getData() + '-');
+                state = State.COMMENT;
+                break;
+        }
+    }
+
+    //12.2.5.45 Comment state
+    private void inComment() {
+        debug("inComment");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // This is an eof-in-comment parse error.
+            log.error("eof-in-comment");
+            // Emit the comment token. Emit an end-of-file token.
+            tokens.add(commentToken);
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+003C LESS-THAN SIGN (<)
+            case '<':
+                // Append the current input character to the comment token's data.
+                // Switch to the comment less-than sign state.
+                commentToken.setData(commentToken.getData() + c);
+                state = State.COMMENT_LESS_THAN_SIGN;
+                position++;
+                break;
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Switch to the comment end dash state.
+                state = State.COMMENT_END_DASH;
+                position++;
+                break;
+            // U+0000 NULL
+            case 0x0000:
+                // This is an unexpected-null-character parse error.
+                log.error("unexpected-null-character");
+                // Append a U+FFFD REPLACEMENT CHARACTER character to the comment token's data.
+                commentToken.setData(commentToken.getData() + (char) 0xFFFD);
+                position++;
+                return;
+            default:
+                // Append the current input character to the comment token's data.
+                commentToken.setData(commentToken.getData() + c);
+                position++;
+                break;
+        }
+    }
+
+    //12.2.5.46 Comment less-than sign state
+    private void inCommentLessThanSign() {
+        debug("inCommentLessThanSign");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0021 EXCLAMATION MARK (!)
+            case '!':
+                // Append the current input character to the comment token's data.
+                commentToken.setData(commentToken.getData() + c);
+                // Switch to the comment less-than sign bang state.
+                state = State.COMMENT_LESS_THAN_SIGN_BANG;
+                position++;
+                break;
+            // U+003C LESS-THAN SIGN (<)
+            case '<':
+                // Append the current input character to the comment token's data.
+                commentToken.setData(commentToken.getData() + c);
+                position++;
+                break;
+            default:
+                // Reconsume in the comment state.
+                state = State.COMMENT;
+                break;
+        }
+    }
+
+    //12.2.5.47 Comment less-than sign bang state
+    private void inCommentLessThanSignBang() {
+        debug("inCommentLessThanSignBang");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Switch to the comment less-than sign bang dash state.
+                state = State.COMMENT_LESS_THAN_SIGN_BANG_DASH;
+                position++;
+                break;
+            default:
+                // Reconsume in the comment state.
+                state = State.COMMENT;
+                break;
+        }
+    }
+
+    //12.2.5.48 Comment less-than sign bang dash state
+    private void inCommentLessThanSignBangDash() {
+        debug("inCommentLessThanSignBangDash");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Switch to the comment less-than sign bang dash dash state.
+                state = State.COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH;
+                position++;
+                break;
+            default:
+                // Reconsume in the comment end dash state.
+                state = State.COMMENT_END_DASH;
+                break;
+        }
+    }
+
+    //12.2.5.49 Comment less-than sign bang dash dash state
+    private void inCommentLessThanSignBangDashDash() {
+        debug("inCommentLessThanSignBangDashDash");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // Reconsume in the comment end state.
+            state = State.COMMENT_END;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Reconsume in the comment end state.
+                state = State.COMMENT_END;
+                break;
+            default:
+                // This is a nested-comment parse error. Reconsume in the comment end state.
+                log.error("nested-comment");
+                state = State.COMMENT_END;
+                break;
+        }
+    }
+
+    //12.2.5.50 Comment end dash state
+    private void inCommentEndDash() {
+        debug("inCommentEndDash");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // This is an eof-in-comment parse error.
+            log.error("eof-in-comment");
+            // Emit the comment token. Emit an end-of-file token.
+            tokens.add(commentToken);
+            tokens.add(new EndOfFileToken());
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Switch to the comment end state
+                state = State.COMMENT_END;
+                position++;
+                break;
+            default:
+                // Append a U+002D HYPHEN-MINUS character (-) to the comment token's data.
+                commentToken.setData(commentToken.getData() + '-');
+                // Reconsume in the comment state.
+                state = State.COMMENT;
+                break;
+        }
+    }
+
+    //12.2.5.51 Comment end state
+    private void inCommentEnd() {
+        debug("inCommentEnd");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // This is an eof-in-comment parse error.
+            log.error("eof-in-comment");
+            // Emit the comment token. Emit an end-of-file token.
+            tokens.add(commentToken);
+            tokens.add(new EndOfFileToken());
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // Switch to the data state. Emit the comment token.
+                state = State.DATA;
+                tokens.add(commentToken);
+                position++;
+                break;
+            // U+0021 EXCLAMATION MARK (!)
+            case '!':
+                // Switch to the comment end bang state.
+                state = State.COMMENT_END_BANG;
+                position++;
+                break;
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Append a U+002D HYPHEN-MINUS character (-) to the comment token's data.
+                commentToken.setData(commentToken.getData() + '-');
+                position++;
+                break;
+            default:
+                // Append two U+002D HYPHEN-MINUS characters (-) to the comment token's data.
+                commentToken.setData(commentToken.getData() + "--");
+                // Reconsume in the comment state.
+                state = State.COMMENT;
+                break;
+        }
+    }
+
+    //12.2.5.52 Comment end bang state
+    private void inCommentEndBang() {
+        debug("inCommentEndBang");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // This is an eof-in-comment parse error.
+            log.error("eof-in-comment");
+            // Emit the comment token. Emit an end-of-file token.
+            tokens.add(commentToken);
+            tokens.add(new EndOfFileToken());
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002D HYPHEN-MINUS (-)
+            case '-':
+                // Append two U+002D HYPHEN-MINUS characters (-)
+                // and a U+0021 EXCLAMATION MARK character (!) to the comment token's data.
+                commentToken.setData(commentToken.getData() + "--!");
+                // Switch to the comment end dash state.
+                state = State.COMMENT_END_DASH;
+                position++;
+                break;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                // This is an incorrectly-closed-comment parse error.
+                log.error("incorrectly-closed-comment");
+                // Switch to the data state. Emit the comment token.
+                state = State.DATA;
+                tokens.add(commentToken);
+                position++;
+                break;
+            default:
+                // Append two U+002D HYPHEN-MINUS characters (-)
+                // and a U+0021 EXCLAMATION MARK character (!) to the comment token's data.
+                commentToken.setData(commentToken.getData() + "--!");
+                // Reconsume in the comment state.
+                state = State.COMMENT;
+                break;
+        }
+    }
 
     //12.2.5.53 DOCTYPE state
     private void inDoctype() {
@@ -1987,12 +2633,11 @@ class Tokenizer {
     }
 
 
-    //TODO in functions?
+    //TODO in functions
     private String substring(int length) {
         return substring(htmlString, position, length);
     }
 
-    //TODO in functions?
     private String substring(String source, int beginIndex, int length) {
         if (source == null) {
             return null;
