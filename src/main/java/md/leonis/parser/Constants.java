@@ -1,8 +1,15 @@
 package md.leonis.parser;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import md.leonis.parser.domain.token.NamedCharacter;
 
 class Constants {
 
@@ -60,6 +67,13 @@ class Constants {
 
     // An `ASCII alphanumeric` is an ASCII digit or ASCII alpha.
     static final Set<Character> ASCII_ALPHANUMERIC;
+
+    // Named character references
+    // This table lists the character reference names that are supported by HTML,
+    // and the code points to which they refer. It is referenced by the previous sections.
+    // https://html.spec.whatwg.org/multipage/named-characters.html#named-character-references
+    // key : &AElig , value : NamedCharacter(codepoints=[198], characters=Æ)
+    static final Map<String, NamedCharacter> NAMED_CHARACTER_MAP;
 
     static {
         Set<Integer> codePointsSet = new HashSet<>();
@@ -119,6 +133,16 @@ class Constants {
         charactersSet = new HashSet<>(ASCII_DIGIT);
         charactersSet.addAll(ASCII_ALPHA);
         ASCII_ALPHANUMERIC = Collections.unmodifiableSet(charactersSet);
-    }
 
+
+        Gson gson = new Gson();
+        Map<String, NamedCharacter> namedCharacterMap;
+        try (Reader reader = new InputStreamReader(Main.class.getResourceAsStream("/entities.json"), "UTF-8")){
+            namedCharacterMap = gson.fromJson(reader, new TypeToken<Map<String, NamedCharacter>>(){}.getType());
+        } catch (IOException e) {
+            namedCharacterMap = Collections.emptyMap();
+            e.printStackTrace();
+        }
+        NAMED_CHARACTER_MAP = Collections.unmodifiableMap(namedCharacterMap);
+    }
 }

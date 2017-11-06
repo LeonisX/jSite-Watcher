@@ -64,6 +64,7 @@ class Tokenizer {
         // `explicit "EOF" character` (inserted by the document.close() method) is consumed. Otherwise, the
         // "EOF" character is not a real character in the stream, but rather the lack of any further characters.
 
+        //TODO make as EnumMap
         while (position <= length) {
             switch (state) {
                 case DATA:
@@ -99,11 +100,15 @@ class Tokenizer {
                 case RCDATA_END_TAG_NAME:
                     inRcDataEndTagName();
                     break;
-
-
-
-
-
+                case RAWTEXT_LESS_THAN_SIGN:
+                    inRawTextLessThanSign();
+                    break;
+                case RAWTEXT_END_TAG_OPEN:
+                    inRawTextEndTagOpen();
+                    break;
+                case RAWTEXT_END_TAG_NAME:
+                    inRawTextEndTagName();
+                    break;
                 case BEFORE_ATTRIBUTE_NAME:
                     inBeforeAttributeName();
                     break;
@@ -214,6 +219,15 @@ class Tokenizer {
                     break;
                 case BOGUS_DOCTYPE:
                     inBogusDoctype();
+                    break;
+                case CDATA_SECTION:
+                    inCDataSection();
+                    break;
+                case CDATA_SECTION_BRACKET:
+                    inCDataSectionBracket();
+                    break;
+                case CDATA_SECTION_END:
+                    inCDataSectionEnd();
                     break;
                 case CHARACTER_REFERENCE:
                     inCharacterReferenceState();
@@ -605,8 +619,6 @@ class Tokenizer {
         }
     }
 
-
-    //TODO optimize "Otherwise, treat it as per the "anything else" entry below."
     //12.2.5.11 RCDATA end tag name state
     private void inRcDataEndTagName() {
         debug("inRcDataEndTagName");
@@ -628,16 +640,7 @@ class Tokenizer {
                     position++;
                 } else {
                     // Otherwise, treat it as per the "anything else" entry below.
-                    // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
-                    // and a character token for each of the characters in the temporary buffer
-                    // (in the order they were added to the buffer).
-                    tokens.add(new CharacterToken((char) 0x003C));
-                    tokens.add(new CharacterToken((char) 0x002F));
-                    for (char ch: temporaryBuffer.toString().toCharArray()) {
-                        tokens.add(new CharacterToken(ch));
-                    }
-                    // Reconsume in the RCDATA state.
-                    state = State.BEFORE_ATTRIBUTE_NAME;
+                    rcDataAnythingElse();
                 }
                 break;
             // U+002F SOLIDUS (/)
@@ -649,16 +652,7 @@ class Tokenizer {
                     position++;
                 } else {
                     // Otherwise, treat it as per the "anything else" entry below.
-                    // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
-                    // and a character token for each of the characters in the temporary buffer
-                    // (in the order they were added to the buffer).
-                    tokens.add(new CharacterToken((char) 0x003C));
-                    tokens.add(new CharacterToken((char) 0x002F));
-                    for (char ch: temporaryBuffer.toString().toCharArray()) {
-                        tokens.add(new CharacterToken(ch));
-                    }
-                    // Reconsume in the RCDATA state.
-                    state = State.BEFORE_ATTRIBUTE_NAME;
+                    rcDataAnythingElse();
                 }
                 break;
             // U+003E GREATER-THAN SIGN (>)
@@ -671,16 +665,7 @@ class Tokenizer {
                     position++;
                 } else {
                     // Otherwise, treat it as per the "anything else" entry below.
-                    // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
-                    // and a character token for each of the characters in the temporary buffer
-                    // (in the order they were added to the buffer).
-                    tokens.add(new CharacterToken((char) 0x003C));
-                    tokens.add(new CharacterToken((char) 0x002F));
-                    for (char ch: temporaryBuffer.toString().toCharArray()) {
-                        tokens.add(new CharacterToken(ch));
-                    }
-                    // Reconsume in the RCDATA state.
-                    state = State.BEFORE_ATTRIBUTE_NAME;
+                    rcDataAnythingElse();
                 }
                 break;
             default:
@@ -703,23 +688,153 @@ class Tokenizer {
                     }
                     // Anything else
                     else {
-                        // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
-                        // and a character token for each of the characters in the temporary buffer
-                        // (in the order they were added to the buffer).
-                        tokens.add(new CharacterToken((char) 0x003C));
-                        tokens.add(new CharacterToken((char) 0x002F));
-                        for (char ch : temporaryBuffer.toString().toCharArray()) {
-                            tokens.add(new CharacterToken(ch));
-                        }
-                        // Reconsume in the RCDATA state.
-                        state = State.BEFORE_ATTRIBUTE_NAME;
+                        rcDataAnythingElse();
                     }
         }
     }
 
-    //TODO 12.2.5.12 RAWTEXT less-than sign state
-    //TODO 12.2.5.13 RAWTEXT end tag open state
-    //TODO 12.2.5.14 RAWTEXT end tag name state
+    private void rcDataAnythingElse() {
+        // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
+        // and a character token for each of the characters in the temporary buffer
+        // (in the order they were added to the buffer).
+        tokens.add(new CharacterToken((char) 0x003C));
+        tokens.add(new CharacterToken((char) 0x002F));
+        for (char ch: temporaryBuffer.toString().toCharArray()) {
+            tokens.add(new CharacterToken(ch));
+        }
+        // Reconsume in the RCDATA state.
+        state = State.RCDATA;
+    }
+
+    //12.2.5.12 RAWTEXT less-than sign state
+    private void inRawTextLessThanSign() {
+        debug("inRawTextLessThanSign");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+002F SOLIDUS (/)
+            case '/':
+                //Set the temporary buffer to the empty string. Switch to the RAWTEXT end tag open state.
+                temporaryBuffer = new StringBuilder("");
+                state = State.RAWTEXT_END_TAG_OPEN;
+                position++;
+                break;
+            default:
+                // Anything else: Emit a U+003C LESS-THAN SIGN character token.
+                tokens.add(new CharacterToken((char) 0x003C));
+                // Reconsume in the RAWTEXT state.
+                state = State.RAWTEXT;
+        }
+    }
+
+    //12.2.5.13 RAWTEXT end tag open state
+    private void inRawTextEndTagOpen() {
+        debug("inRawTextEndTagOpen");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        // ASCII alpha
+        if (Constants.ASCII_ALPHA.contains(c)) {
+            // Create a new end tag token, set its tag name to the empty string.
+            endTagToken = new EndTagToken("");
+            tagToken = endTagToken;
+            // Reconsume in the RAWTEXT end tag name state.
+            state = State.RAWTEXT_END_TAG_NAME;
+        } else {
+            // Emit a U+003C LESS-THAN SIGN character token and a U+002F SOLIDUS character token
+            tokens.add(new CharacterToken((char) 0x003C));
+            tokens.add(new CharacterToken((char) 0x002F));
+            //  Reconsume in the RAWTEXT state.
+            state = State.RAWTEXT;
+        }
+    }
+
+    //12.2.5.14 RAWTEXT end tag name state
+    private void inRawTextEndTagName() {
+        debug("inRawTextEndTagName");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            //U+0009 CHARACTER TABULATION (tab)
+            case 0x0009:
+                // U+000A LINE FEED (LF)
+            case 0x000A:
+                //U+000C FORM FEED (FF)
+            case 0x000C:
+                //U+0020 SPACE
+            case 0x0020:
+                // If the current end tag token is an appropriate end tag token,
+                if (endTagToken.getName().equals(startTagToken.getName())) {
+                    // then switch to the before attribute name state.
+                    state = State.BEFORE_ATTRIBUTE_NAME;
+                    position++;
+                } else {
+                    // Otherwise, treat it as per the "anything else" entry below.
+                    rawTextAnythingElse();
+                }
+                break;
+            // U+002F SOLIDUS (/)
+            case '/':
+                //If the current end tag token is an appropriate end tag token,
+                if (endTagToken.getName().equals(startTagToken.getName())) {
+                    // then switch to the self-closing start tag state.
+                    state = State.SELF_CLOSING_START_TAG;
+                    position++;
+                } else {
+                    // Otherwise, treat it as per the "anything else" entry below.
+                    rawTextAnythingElse();
+                }
+                break;
+            // U+003E GREATER-THAN SIGN (>)
+            case '>':
+                //If the current end tag token is an appropriate end tag token,
+                if (endTagToken.getName().equals(startTagToken.getName())) {
+                    // then switch to the data state and emit the current tag token
+                    state = State.DATA;
+                    tokens.add(tagToken);
+                    position++;
+                } else {
+                    // Otherwise, treat it as per the "anything else" entry below.
+                    rawTextAnythingElse();
+                }
+                break;
+            default:
+                // ASCII upper alpha
+                if (Constants.ASCII_UPPER_ALPHA.contains(c)) {
+                    // Append the lowercase version of the current input character
+                    // (add 0x0020 to the character's code point) to the current tag token's tag name.
+                    tagToken.setName(tagToken.getName() + Character.toLowerCase(c));
+                    // Append the current input character to the temporary buffer.
+                    temporaryBuffer.append(c);
+                    position++;
+                } else
+                    // ASCII lower alpha
+                    if (Constants.ASCII_LOWER_ALPHA.contains(c)) {
+                        // Append the current input character to the current tag token's tag name.
+                        tagToken.setName(tagToken.getName() + c);
+                        // Append the current input character to the temporary buffer.
+                        temporaryBuffer.append(c);
+                        position++;
+                    }
+                    // Anything else
+                    else {
+                        rawTextAnythingElse();
+                    }
+        }
+    }
+
+    private void rawTextAnythingElse() {
+        // Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token,
+        // and a character token for each of the characters in the temporary buffer
+        // (in the order they were added to the buffer).
+        tokens.add(new CharacterToken((char) 0x003C));
+        tokens.add(new CharacterToken((char) 0x002F));
+        for (char ch: temporaryBuffer.toString().toCharArray()) {
+            tokens.add(new CharacterToken(ch));
+        }
+        // Reconsume in the RAWTEXT state.
+        state = State.RAWTEXT;
+    }
+
     //TODO 12.2.5.15 Script data less-than sign state
     //TODO 12.2.5.16 Script data end tag open state
     //TODO 12.2.5.17 Script data end tag name state
@@ -2558,9 +2673,83 @@ class Tokenizer {
         }
     }
 
-    //TODO 12.2.5.69 CDATA section state
-    //TODO 12.2.5.70 CDATA section bracket state
-    //TODO 12.2.5.71 CDATA section end state
+    //12.2.5.69 CDATA section state
+    private void inCDataSection() {
+        debug("inCDataSection");
+        // Consume the next input character:
+        // EOF:
+        if (position == length) {
+            // This is an eof-in-cdata parse error.
+            log.error("eof-in-cdata");
+            // Emit an end-of-file token.
+            tokens.add(new EndOfFileToken());
+            position++;
+            return;
+        }
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+005D RIGHT SQUARE BRACKET (])
+            case ']':
+                // Switch to the CDATA section bracket state.
+                state = State.CDATA_SECTION_BRACKET;
+                position++;
+                return;
+            default:
+                // Anything else: Emit the current input character as a character token.
+                tokens.add(new CharacterToken(c));
+                position++;
+                break;
+        }
+    }
+
+    //12.2.5.70 CDATA section bracket state
+    private void inCDataSectionBracket() {
+        debug("inCDataSectionBracket");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+005D RIGHT SQUARE BRACKET (])
+            case ']':
+                // Switch to the CDATA section end state.
+                state = State.CDATA_SECTION_END;
+                position++;
+                return;
+            default:
+                // Emit a U+005D RIGHT SQUARE BRACKET character token.
+                tokens.add(new CharacterToken(']'));
+                // Reconsume in the CDATA section state.
+                state = State.CDATA_SECTION;
+                break;
+        }
+    }
+
+    //12.2.5.71 CDATA section end state
+    private void inCDataSectionEnd() {
+        debug("inCDataSectionEnd");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+005D RIGHT SQUARE BRACKET (])
+            case ']':
+                // Emit a U+005D RIGHT SQUARE BRACKET character token.
+                tokens.add(new CharacterToken(']'));
+                position++;
+                return;
+            // U+003E GREATER-THAN SIGN character
+            case 0x003E:
+                // Switch to the data state.
+                state = State.DATA;
+                position++;
+                return;
+            default:
+                // Emit two U+005D RIGHT SQUARE BRACKET character tokens.
+                tokens.add(new CharacterToken(']'));
+                tokens.add(new CharacterToken(']'));
+                // Reconsume in the CDATA section state.
+                state = State.CDATA_SECTION;
+                break;
+        }
+    }
 
     //12.2.5.72 Character reference state
     private void inCharacterReferenceState() {
