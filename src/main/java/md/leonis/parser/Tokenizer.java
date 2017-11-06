@@ -230,8 +230,14 @@ class Tokenizer {
                     inCDataSectionEnd();
                     break;
                 case CHARACTER_REFERENCE:
-                    inCharacterReferenceState();
+                    inCharacterReference();
                     break;
+                case NAMED_CHARACTER_REFERENCE:
+                    inNamedCharacterReference();
+                    break;
+
+
+
                 default:
                     System.out.println(tokens);
                     throw new RuntimeException("" + state);
@@ -2752,8 +2758,8 @@ class Tokenizer {
     }
 
     //12.2.5.72 Character reference state
-    private void inCharacterReferenceState() {
-        debug("inCharacterReferenceState");
+    private void inCharacterReference() {
+        debug("inCharacterReference");
         // Set the temporary buffer to the empty string.
         // Append a U+0026 AMPERSAND (&) character to the temporary buffer.
         temporaryBuffer = new StringBuilder("&");
@@ -2785,6 +2791,95 @@ class Tokenizer {
     }
 
     //TODO 12.2.5.73 Named character reference state
+    private void inNamedCharacterReference() {
+        debug("inNamedCharacterReference");
+        boolean getNextChar = false;
+        //TODO test this case
+        temporaryBuffer = new StringBuilder("");
+        // Consume the maximum number of characters possible, with the consumed characters
+        // matching one of the identifiers in the first column of the named character references table
+        // (in a case-sensitive manner). Append each character to the temporary buffer when it's consumed.
+        do {
+            char c = htmlString.charAt(position);
+            temporaryBuffer.append(c);
+            position++;
+            getNextChar = Constants.NAMED_CHARACTER_MAP.containsKey(temporaryBuffer.toString())
+                    || namedCharacterMapContainsPartial(temporaryBuffer.toString());
+            if (position == htmlString.length()) {
+                getNextChar = false;
+            }
+        } while (getNextChar);
+        temporaryBuffer.deleteCharAt(temporaryBuffer.length() - 1);
+
+        String string = temporaryBuffer.toString();
+
+        //If there is a match
+        if (Constants.NAMED_CHARACTER_MAP.containsKey(string)) {
+            char c = string.charAt(string.length() - 1);
+            char nextChar = htmlString.charAt(position);
+            //TODO synchronize with flushCodePoints() states
+            //      If the character reference was consumed as part of an attribute,
+            //      and the last character matched is not a U+003B SEMICOLON character (;),
+            //      and the next input character is either a U+003D EQUALS SIGN character (=) or an ASCII alphanumeric,
+            if (returnState != State.DATA && !(';' == c) && ('=' == nextChar || Constants.ASCII_ALPHANUMERIC
+                    .contains(nextChar))) {
+                //      then, for historical reasons, flush code points consumed as a character reference
+                //      and switch to the return state.
+                flushCodePoints();
+                state = returnState;
+                position++;
+            } else {
+                //      Otherwise:
+                //          1. If the last character matched is not a U+003B SEMICOLON character (;),
+                //          then this is a missing-semicolon-after-character-reference parse error.
+                if (!(';' == nextChar)) {
+                    log.error("missing-semicolon-after-character-reference");
+                }
+                //          2. Set the temporary buffer to the empty string.
+                temporaryBuffer = new StringBuilder("");
+                //          Append one or two characters corresponding to the character reference name
+                //          (as given by the second column of the named character references table) to the temporary buffer.
+                temporaryBuffer.append(Constants.NAMED_CHARACTER_MAP.get(string));
+
+                //          3. Flush code points consumed as a character reference. Switch to the return state.
+                flushCodePoints();
+                state = returnState;
+                position++;
+            }
+        } else {
+            //Otherwise (no match)
+            //      Flush code points consumed as a character reference. Switch to the ambiguous ampersand state.
+            flushCodePoints();
+            state = State.AMBIGUOUS_AMPERSAND;
+            position++;
+        }
+
+        //Example:
+        //If the markup contains (not in an attribute) the string I'm &notit; I tell you,
+        // the character reference is parsed as "not", as in, I'm ¬it; I tell you (and this is a parse error).
+        // But if the markup was I'm &notin; I tell you, the character reference would be parsed as "notin;",
+        // resulting in I'm ∉ I tell you (and no parse error).
+
+        //However, if the markup contains the string I'm &notit; I tell you in an attribute,
+        // no character reference is parsed and string remains intact (and there is no parse error).
+    }
+
+    private boolean namedCharacterMapContainsPartial(String subString) {
+        for (String key : Constants.NAMED_CHARACTER_MAP.keySet()) {
+            if (key.startsWith(subString)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Character getNextCharacter() {
+        if (position + 1 == htmlString.length()) {
+            return null;
+        }
+        return htmlString.charAt(position + 1);
+    }
+
     //TODO 12.2.5.74 Ambiguous ampersand state
     //TODO 12.2.5.75 Numeric character reference state
     //TODO 12.2.5.76 Hexademical character reference start state
