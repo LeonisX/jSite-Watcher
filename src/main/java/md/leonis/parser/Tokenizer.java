@@ -39,6 +39,7 @@ class Tokenizer {
     private CommentToken commentToken;
     private DoctypeToken doctypeToken;
     private StringBuilder temporaryBuffer;
+    private Integer characterReferenceCode;
 
     Tokenizer(String htmlString) {
         this.htmlString = htmlString;
@@ -235,9 +236,27 @@ class Tokenizer {
                 case NAMED_CHARACTER_REFERENCE:
                     inNamedCharacterReference();
                     break;
-
-
-
+                case AMBIGUOUS_AMPERSAND:
+                    inAmbiguousAmpersand();
+                    break;
+                case NUMERIC_CHARACTER_REFERENCE:
+                    inNumericCharacterReference();
+                    break;
+                case HEXADEMICAL_CHARACTER_REFERENCE_START:
+                    inHexademicalCharacterReferenceStart();
+                    break;
+                case DECIMAL_CHARACTER_REFERENCE_START:
+                    inDecimalCharacterReferenceStart();
+                    break;
+                case HEXADEMICAL_CHARACTER_REFERENCE:
+                    inHexademicalCharacterReference();
+                    break;
+                case DECIMAL_CHARACTER_REFERENCE:
+                    inDecimalCharacterReference();
+                    break;
+                case NUMERIC_CHARACTER_REFERENCE_END:
+                    inNumericCharacterReferenceEnd();
+                    break;
                 default:
                     System.out.println(tokens);
                     throw new RuntimeException("" + state);
@@ -705,7 +724,7 @@ class Tokenizer {
         // (in the order they were added to the buffer).
         tokens.add(new CharacterToken((char) 0x003C));
         tokens.add(new CharacterToken((char) 0x002F));
-        for (char ch: temporaryBuffer.toString().toCharArray()) {
+        for (char ch : temporaryBuffer.toString().toCharArray()) {
             tokens.add(new CharacterToken(ch));
         }
         // Reconsume in the RCDATA state.
@@ -834,7 +853,7 @@ class Tokenizer {
         // (in the order they were added to the buffer).
         tokens.add(new CharacterToken((char) 0x003C));
         tokens.add(new CharacterToken((char) 0x002F));
-        for (char ch: temporaryBuffer.toString().toCharArray()) {
+        for (char ch : temporaryBuffer.toString().toCharArray()) {
             tokens.add(new CharacterToken(ch));
         }
         // Reconsume in the RAWTEXT state.
@@ -2784,16 +2803,15 @@ class Tokenizer {
                     flushCodePoints();
                     // Reconsume in the return state.
                     state = returnState;
-                    position++;
                     break;
                 }
         }
     }
 
-    //TODO 12.2.5.73 Named character reference state
+    //12.2.5.73 Named character reference state
     private void inNamedCharacterReference() {
         debug("inNamedCharacterReference");
-        boolean getNextChar = false;
+        boolean getNextChar;
         //TODO test this case
         temporaryBuffer = new StringBuilder("");
         // Consume the maximum number of characters possible, with the consumed characters
@@ -2817,11 +2835,10 @@ class Tokenizer {
         if (Constants.NAMED_CHARACTER_MAP.containsKey(string)) {
             char c = string.charAt(string.length() - 1);
             char nextChar = htmlString.charAt(position);
-            //TODO synchronize with flushCodePoints() states
             //      If the character reference was consumed as part of an attribute,
             //      and the last character matched is not a U+003B SEMICOLON character (;),
             //      and the next input character is either a U+003D EQUALS SIGN character (=) or an ASCII alphanumeric,
-            if (returnState != State.DATA && !(';' == c) && ('=' == nextChar || Constants.ASCII_ALPHANUMERIC
+            if (isAttributeFlow() && !(';' == c) && ('=' == nextChar || Constants.ASCII_ALPHANUMERIC
                     .contains(nextChar))) {
                 //      then, for historical reasons, flush code points consumed as a character reference
                 //      and switch to the return state.
@@ -2873,20 +2890,217 @@ class Tokenizer {
         return false;
     }
 
-    public Character getNextCharacter() {
-        if (position + 1 == htmlString.length()) {
-            return null;
+    //12.2.5.74 Ambiguous ampersand state
+    private void inAmbiguousAmpersand() {
+        debug("inAmbiguousAmpersand");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+003B SEMICOLON (;)
+            case ';':
+                // This is an unknown-named-character-reference parse error.
+                log.error("unknown-named-character-reference");
+                // Reconsume in the return state.
+                state = returnState;
+                break;
+            default:
+                // ASCII alphanumeric
+                if (Constants.ASCII_ALPHANUMERIC.contains(c)) {
+                    // If the character reference was consumed as part of an attribute,
+                    if (isAttributeFlow()) {
+                        // then append the current input character to the current attribute's value.
+                        attribute.setName(attribute.getName() + c);
+                    } else {
+                        // Otherwise, emit the current input character as a character token.
+                        tokens.add(new CharacterToken(c));
+                    }
+                    position++;
+                    break;
+                } else {
+                    // Reconsume in the return state.
+                    state = returnState;
+                    break;
+                }
         }
-        return htmlString.charAt(position + 1);
     }
 
-    //TODO 12.2.5.74 Ambiguous ampersand state
-    //TODO 12.2.5.75 Numeric character reference state
-    //TODO 12.2.5.76 Hexademical character reference start state
-    //TODO 12.2.5.77 Decimal character reference start state
-    //TODO 12.2.5.78 Hexademical character reference state
-    //TODO 12.2.5.79 Decimal character reference state
-    //TODO 12.2.5.80 Numeric character reference end state
+    //12.2.5.75 Numeric character reference state
+    private void inNumericCharacterReference() {
+        debug("inNumericCharacterReference");
+        // Set the character reference code to zero (0).
+        characterReferenceCode = 0;
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        switch (c) {
+            // U+0078 LATIN SMALL LETTER X
+            case 'x':
+                // U+0058 LATIN CAPITAL LETTER X
+            case 'X':
+                // Append the current input character to the temporary buffer.
+                temporaryBuffer.append(c);
+                // Switch to the hexademical character reference start state.
+                state = State.HEXADEMICAL_CHARACTER_REFERENCE_START;
+                position++;
+                break;
+            default:
+                // Anything else
+                // Reconsume in the decimal character reference start state.
+                state = State.DECIMAL_CHARACTER_REFERENCE_START;
+                break;
+        }
+    }
+
+    //12.2.5.76 Hexademical character reference start state
+    private void inHexademicalCharacterReferenceStart() {
+        debug("inHexademicalCharacterReferenceStart");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        // ASCII hex digit
+        if (Constants.ASCII_HEX_DIGIT.contains(c)) {
+            // Reconsume in the hexademical character reference state.
+            state = State.HEXADEMICAL_CHARACTER_REFERENCE;
+        } else {
+            //Anything else: This is an absence-of-digits-in-numeric-character-reference parse error.
+            log.error("absence-of-digits-in-numeric-character-reference");
+            // Flush code points consumed as a character reference.
+            flushCodePoints();
+            // Reconsume in the return state.
+            state = returnState;
+        }
+    }
+
+    //12.2.5.77 Decimal character reference start state
+    private void inDecimalCharacterReferenceStart() {
+        debug("inDecimalCharacterReferenceStart");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        // ASCII digit
+        if (Constants.ASCII_DIGIT.contains(c)) {
+            // Reconsume in the decimal character reference state.
+            state = State.DECIMAL_CHARACTER_REFERENCE;
+        } else {
+            //Anything else: This is an absence-of-digits-in-numeric-character-reference parse error.
+            log.error("absence-of-digits-in-numeric-character-reference");
+            // Flush code points consumed as a character reference.
+            flushCodePoints();
+            // Reconsume in the return state.
+            state = returnState;
+        }
+    }
+
+    //12.2.5.78 Hexademical character reference state
+    private void inHexademicalCharacterReference() {
+        debug("inHexademicalCharacterReference");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        // ASCII digit
+        if (Constants.ASCII_DIGIT.contains(c)) {
+            // Multiply the character reference code by 16.
+            characterReferenceCode *= 16;
+            // Add a numeric version of the current input character
+            // (subtract 0x0030 from the character's code point) to the character reference code.
+            characterReferenceCode += (c - 0x0030);
+            position++;
+        } else if (Constants.ASCII_UPPER_HEX_DIGIT.contains(c)) {
+            //  ASCII upper hex digit
+            // Multiply the character reference code by 16.
+            characterReferenceCode *= 16;
+            // Add a numeric version of the current input character as a hexademical digit
+            // (subtract 0x0037 from the character's code point) to the character reference code.
+            characterReferenceCode += (c - 0x0037);
+            position++;
+        } else if (Constants.ASCII_LOWER_HEX_DIGIT.contains(c)) {
+            // ASCII lower hex digit
+            // Multiply the character reference code by 16.
+            characterReferenceCode *= 16;
+            // Add a numeric version of the current input character as a hexademical digit
+            // (subtract 0x0057 from the character's code point) to the character reference code.
+            characterReferenceCode += (c - 0x0057);
+            position++;
+        } else if (c == 0x003B) {
+            // U+003B SEMICOLON
+            // Switch to the numeric character reference end state.
+            state = State.NUMERIC_CHARACTER_REFERENCE_END;
+            position++;
+        } else {
+            // Anything else
+            // This is a missing-semicolon-after-character-reference parse error.
+            log.error("missing-semicolon-after-character-reference");
+            // Reconsume in the numeric character reference end state.
+            state = State.NUMERIC_CHARACTER_REFERENCE_END;
+        }
+    }
+
+    //12.2.5.79 Decimal character reference state
+    private void inDecimalCharacterReference() {
+        debug("inDecimalCharacterReference");
+        // Consume the next input character:
+        char c = htmlString.charAt(position);
+        // ASCII digit
+        if (Constants.ASCII_DIGIT.contains(c)) {
+            // Multiply the character reference code by 10
+            characterReferenceCode *= 10;
+            // Add a numeric version of the current input character
+            // (subtract 0x0030 from the character's code point) to the character reference code.
+            characterReferenceCode += (c - 0x0030);
+            position++;
+        } else if (c == 0x003B) {
+            // U+003B SEMICOLON
+            // Switch to the numeric character reference end state.
+            state = State.NUMERIC_CHARACTER_REFERENCE_END;
+            position++;
+        } else {
+            // Anything else
+            // This is a missing-semicolon-after-character-reference parse error.
+            log.error("missing-semicolon-after-character-reference");
+            // Reconsume in the numeric character reference end state.
+            state = State.NUMERIC_CHARACTER_REFERENCE_END;
+        }
+    }
+
+    //12.2.5.80 Numeric character reference end state
+    private void inNumericCharacterReferenceEnd() {
+        debug("inNumericCharacterReferenceEnd");
+        // Check the character reference code:
+        //      If the number is 0x00, then this is a null-character-reference parse error.
+        //      Set the character reference code to 0xFFFD.
+        if (characterReferenceCode == 0) {
+            log.error("null-character-reference");
+            characterReferenceCode = 0xFFFD;
+        } else if (characterReferenceCode > 0x10FFFF) {
+            //      If the number is greater than 0x10FFFF, then this is a character-reference-outside-unicode-range
+            //      parse error. Set the character reference code to 0xFFFD.
+            log.error("character-reference-outside-unicode-range");
+            characterReferenceCode = 0xFFFD;
+        } else if (characterReferenceCode >= 0xD800 && characterReferenceCode <= 0xDFFF) {
+            //      If the number is a surrogate, then this is a surrogate-character-reference parse error.
+            //      Set the character reference code to 0xFFFD.
+            log.error("surrogate-character-reference");
+            characterReferenceCode = 0xFFFD;
+        } else if (Constants.NON_CHARACTERS_SET.contains(characterReferenceCode)) {
+            //      If the number is a noncharacter, then this is a noncharacter-character-reference parse error.
+            log.error("noncharacter-character-reference");
+        } else if (characterReferenceCode == 0x0D || Constants.CONTROL_SET.contains(characterReferenceCode)) {
+            //      If the number is 0x0D, or a control that's not ASCII whitespace,
+            //      then this is a control-character-reference parse error.
+            log.error("control-character-reference");
+        } else if (Constants.NUMERIC_CHARACTER_MAP.containsKey(characterReferenceCode)) {
+            //      If the number is one of the numbers in the first column of the following table,
+            //      then find the row with that number in the first column, and set the character
+            //      reference code to the number in the second column of that row.
+            characterReferenceCode = Constants.NUMERIC_CHARACTER_MAP.get(characterReferenceCode);
+        }
+
+        // Set the temporary buffer to the empty string.
+        temporaryBuffer = new StringBuilder("");
+        // Append a code point equal to the character reference code to the temporary buffer.
+        temporaryBuffer.append((char) characterReferenceCode.intValue());
+        // Flush code points consumed as a character reference.
+        flushCodePoints();
+        // Switch to the return state.
+        state = returnState;
+        position++;
+    }
 
     // When a state says to flush code points consumed as a character reference,
     // it means that for each code point in the temporary buffer
@@ -2895,27 +3109,25 @@ class Tokenizer {
     // character reference was consumed as part of an attribute, or emit
     // the code point as a character token otherwise.
     private void flushCodePoints() {
-        switch (returnState) {
-            case DATA:
-                tokens.add(new CharacterToken(temporaryBuffer));
-                break;
-            case ATTRIBUTE_VALUE_DOUBLE_QUOTED:
-            case ATTRIBUTE_VALUE_SINGLE_QUOTED:
-            case ATTRIBUTE_VALUE_UNQUOTED:
-                attribute.setValue(attribute.getValue().concat(temporaryBuffer.toString()));
-                break;
-            default:
-                throw new RuntimeException("Unknown return state");
+        if (isAttributeFlow()) {
+            attribute.setValue(attribute.getValue().concat(temporaryBuffer.toString()));
+        } else if (returnState == State.DATA) {
+            tokens.add(new CharacterToken(temporaryBuffer));
+        } else {
+            throw new RuntimeException("Unknown return state");
         }
         temporaryBuffer = null;
     }
 
+    private boolean isAttributeFlow() {
+        return returnState == State.ATTRIBUTE_VALUE_DOUBLE_QUOTED || returnState == State.ATTRIBUTE_VALUE_SINGLE_QUOTED
+                || returnState == State.ATTRIBUTE_VALUE_UNQUOTED;
+    }
 
     private void debug(String methodName) {
         String s = doctypeToken == null ? "" : doctypeToken.getName();
         log.info(String.format("{ %s } %s %s", substring(16), methodName, s));
     }
-
 
     //TODO in functions
     private String substring(int length) {
