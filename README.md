@@ -73,6 +73,12 @@ JAunt, HtmlUnit не тестировались.
 
 Возможно, остановлюсь на связке Document + jOOX.
 
+Useful links:
+
+* https://html.spec.whatwg.org/multipage/parsing.html#doctype-name-state
+* https://www.w3.org/TR/2011/WD-html5-20110113/the-end.html#fragment-case
+* https://github.com/google/gumbo-parser/blob/master/src/parser.c
+
 Последние исследования показали, что нет большого смысла
 использовать сторонние библиотеки для работы с DOM.
 
