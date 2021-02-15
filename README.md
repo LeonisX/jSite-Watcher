@@ -77,6 +77,7 @@ Useful links:
 
 * https://html.spec.whatwg.org/multipage/parsing.html#doctype-name-state
 * https://www.w3.org/TR/2011/WD-html5-20110113/the-end.html#fragment-case
+* https://html.spec.whatwg.org/multipage/named-characters.html#named-character-references
 * https://github.com/google/gumbo-parser/blob/master/src/parser.c
 
 Последние исследования показали, что нет большого смысла
